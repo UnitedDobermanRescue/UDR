@@ -1,0 +1,942 @@
+<!DOCTYPE html>
+<html>
+<head>
+    
+    <meta http-equiv="content-type" content="text/html; charset=UTF-8" />
+    <script src="https://cdn.jsdelivr.net/npm/leaflet@1.9.3/dist/leaflet.js"></script>
+    <script src="https://code.jquery.com/jquery-3.7.1.min.js"></script>
+    <script src="https://cdn.jsdelivr.net/npm/bootstrap@5.2.2/dist/js/bootstrap.bundle.min.js"></script>
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/Leaflet.awesome-markers/2.0.2/leaflet.awesome-markers.js"></script>
+    <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/leaflet@1.9.3/dist/leaflet.css"/>
+    <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/bootstrap@5.2.2/dist/css/bootstrap.min.css"/>
+    <link rel="stylesheet" href="https://netdna.bootstrapcdn.com/bootstrap/3.0.0/css/bootstrap-glyphicons.css"/>
+    <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/@fortawesome/fontawesome-free@6.2.0/css/all.min.css"/>
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/Leaflet.awesome-markers/2.0.2/leaflet.awesome-markers.css"/>
+    <link rel="stylesheet" href="https://cdn.jsdelivr.net/gh/python-visualization/folium/folium/templates/leaflet.awesome.rotate.min.css"/>
+    
+            <meta name="viewport" content="width=device-width,
+                initial-scale=1.0, maximum-scale=1.0, user-scalable=no" />
+            <style>
+                #map_06e64452276951f13ba3f82926034780 {
+                    position: relative;
+                    width: 100.0%;
+                    height: 100.0%;
+                    left: 0.0%;
+                    top: 0.0%;
+                }
+                .leaflet-container { font-size: 1rem; }
+            </style>
+
+            <style>html, body {
+                width: 100%;
+                height: 100%;
+                margin: 0;
+                padding: 0;
+            }
+            </style>
+
+            <style>#map {
+                position:absolute;
+                top:0;
+                bottom:0;
+                right:0;
+                left:0;
+                }
+            </style>
+
+            <script>
+                L_NO_TOUCH = false;
+                L_DISABLE_3D = false;
+            </script>
+
+        
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/leaflet.markercluster/1.1.0/leaflet.markercluster.js"></script>
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/leaflet.markercluster/1.1.0/MarkerCluster.css"/>
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/leaflet.markercluster/1.1.0/MarkerCluster.Default.css"/>
+</head>
+<body>
+    
+    
+<meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no" />
+<style>
+#sidebar {
+    position: fixed;
+    top: 0;
+    right: -420px;
+    width: 420px;
+    height: 100%;
+    background: white;
+    border-left: 3px solid #444;
+    overflow-y: auto;
+    transition: right 0.3s ease;
+    z-index: 999999;
+    font-family: Arial, sans-serif;
+}
+#sidebar.open { right: 0; }
+#sidebar-close {
+    cursor: pointer;
+    font-size: 28px;
+    font-weight: bold;
+    float: right;
+    margin: 15px;
+    padding: 10px 20px;
+}
+.tab-container { margin-top: 65px; }
+.tab-buttons { display: flex; border-bottom: 2px solid #ccc; }
+.tab-buttons button {
+    flex: 1; padding: 18px; background: #eee;
+    border: none; cursor: pointer; font-weight: bold;
+    font-size: 16px;
+}
+.tab-buttons button.active {
+    background: #ddd; border-bottom: 3px solid #444;
+}
+.tab-content { display: none; padding: 15px; }
+.tab-content.active { display: block; }
+#sidebar img { width: 100%; border-radius: 6px; margin-bottom: 10px; }
+
+#page-header {
+    position: fixed;
+    top: 0;
+    left: 0;
+    width: 100%;
+    background: rgba(255, 255, 255, 0.95);
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    padding: 10px 0;
+    font-family: Arial, sans-serif;
+    z-index: 9999;
+    border-bottom: 2px solid #444;
+}
+#page-header img {
+    height: 35px;
+    margin-right: 10px;
+}
+#header-title {
+    font-size: 20px;
+    font-weight: bold;
+}
+
+/* Mobile Specific Overrides */
+@media only screen and (max-width: 600px) {
+    #sidebar {
+        width: 90% !important;
+        right: -90%;
+    }
+    #header-title {
+        font-size: 16px;
+    }
+    #search-container, #needs-foster-panel {
+        width: 180px !important;
+    }
+    .foster-item {
+        padding: 15px !important; /* Larger touch target */
+    }
+}
+</style>
+
+<div id="page-header">
+    <img src="https://s3.amazonaws.com/imagesroot.rescuegroups.org/webpages/s8319n8fohztfmoo.jpg" alt="UDR Logo">
+    <div id="header-title">UDR Foster Map</div>
+</div>
+
+<div id="sidebar">
+    <span id="sidebar-close">✕</span>
+
+    <div class="tab-container">
+        <div class="tab-buttons">
+            <button class="tab-btn active" onclick="openTab('details')">Details</button>
+            <button class="tab-btn" onclick="openTab('links')">Links</button>
+        </div>
+
+        <div id="details" class="tab-content active">
+            <div id="photos"></div>
+            <div id="videos"></div>
+            <div id="info-text"></div>
+        </div>
+        <div id="links" class="tab-content"></div>
+    </div>
+</div>
+
+<script>
+document.getElementById("sidebar-close").onclick = function() {
+    document.getElementById("sidebar").classList.remove("open");
+};
+
+function openSidebar() {
+    document.getElementById("sidebar").classList.add("open");
+}
+
+function openTab(tabName) {
+    var tabs = document.getElementsByClassName("tab-content");
+    var buttons = document.getElementsByClassName("tab-btn");
+
+    for (var i = 0; i < tabs.length; i++) {
+        tabs[i].classList.remove("active");
+        buttons[i].classList.remove("active");
+    }
+
+    document.getElementById(tabName).classList.add("active");
+    if(tabName === 'details') buttons[0].classList.add("active");
+    else buttons[1].classList.add("active");
+}
+</script>
+    
+<style>
+#needs-foster-panel {
+    position: fixed;
+    top: 115px; /* Moved down to accommodate header and search bar */
+    left: 10px;
+    z-index: 999998;
+    background: white;
+    border: 1px solid #ccc;
+    border-radius: 6px;
+    padding: 0;
+    max-height: 50%;
+    width: 240px;
+    overflow: hidden;
+    font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
+    box-shadow: 0 2px 8px rgba(0,0,0,0.15);
+}
+#needs-foster-header {
+    background: #2c3e50;
+    color: white;
+    padding: 10px 15px;
+    margin: 0;
+    cursor: pointer;
+    font-size: 14px;
+    font-weight: 600;
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    border-bottom: 1px solid #ddd;
+}
+#needs-foster-header:hover {
+    background: #34495e;
+}
+#foster-list {
+    display: none;
+    list-style-type: none;
+    padding: 0;
+    margin: 0;
+    max-height: 300px;
+    overflow-y: auto;
+}
+.foster-item {
+    padding: 8px 15px;
+    border-bottom: 1px solid #f1f1f1;
+    transition: all 0.2s ease;
+    font-size: 13px;
+    font-weight: 400;
+    color: #444;
+    cursor: pointer;
+}
+.foster-item:hover {
+    background: #f8f9fa;
+    color: #c0392b;
+    padding-left: 18px;
+}
+</style>
+
+<div id="needs-foster-panel">
+    <h3 id="needs-foster-header" onclick="toggleFosterList()">
+        Dogs Needing Foster <span style='font-size: 9px;'>▼</span>
+    </h3>
+    <ul id="foster-list">
+<li class='foster-item' onclick='window.openDogFromList(0)'>Chester Foster needed!!!</li><li class='foster-item' onclick='window.openDogFromList(1)'>Sprinkles</li><li class='foster-item' onclick='window.openDogFromList(2)'>Talos</li>
+    </ul>
+</div>
+    
+<style>
+#map-legend {
+    position: fixed;
+    bottom: 35px;
+    right: 20px;
+    z-index: 999998;
+    background: white;
+    border: 1px solid #333;
+    border-radius: 8px;
+    padding: 0;
+    font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
+    box-shadow: 0 4px 15px rgba(0,0,0,0.3);
+    width: 190px;
+    overflow: hidden;
+}
+#legend-header {
+    background: #b2bec3; /* Darker coordinating grey */
+    color: #2d3436;
+    padding: 10px;
+    border-bottom: 2px solid #636e72;
+    cursor: pointer;
+    font-weight: 600;
+    text-align: center;
+    font-size: 14px;
+}
+#legend-header:hover {
+    background: #9fa8a3;
+}
+#legend-content {
+    display: none;
+    padding: 12px;
+}
+.legend-item {
+    display: flex;
+    align-items: center;
+    margin-bottom: 10px;
+    font-size: 12px;
+    font-weight: 500;
+}
+.legend-color {
+    width: 20px;
+    height: 20px;
+    margin-right: 12px;
+    border-radius: 50%;
+    border: 1px solid rgba(0,0,0,0.2);
+}
+</style>
+
+<div id="map-legend">
+    <div id="legend-header" onclick="toggleLegend()">Time in Foster ⓘ</div>
+    <div id="legend-content">
+        <div class="legend-item"><div class="legend-color" style="background: #ffcdd2; border: 2px solid #ef5350;"></div> < 30 Days</div>
+        <div class="legend-item"><div class="legend-color" style="background: #ef5350;"></div> 30 - 89 Days</div>
+        <div class="legend-item"><div class="legend-color" style="background: #b71c1c;"></div> 90 - 179 Days</div>
+        <div class="legend-item"><div class="legend-color" style="background: #000000;"></div> 180+ Days</div>
+    </div>
+</div>
+
+<script>
+function toggleLegend() {
+    var content = document.getElementById('legend-content');
+    content.style.display = (content.style.display === 'none' || content.style.display === '') ? 'block' : 'none';
+}
+</script>
+    
+<div style="
+    position: fixed;
+    bottom: 10px;
+    left: 10px;
+    background: white;
+    padding: 8px;
+    border: 1px solid grey;
+    font-family: Arial, sans-serif;
+    z-index: 99999;
+    text-align: left;
+    font-size: 11px;
+    box-shadow: 0 2px 5px rgba(0,0,0,0.2);
+">
+    <a href="https://www.uniteddobermanrescue.org/animals/browse" target="_blank">
+        Browse All Dogs
+    </a><br>
+
+    <a href="https://tinyurl.com/msffpcsa" target="_blank">
+        Database Report
+    </a>
+</div>
+    
+<style>
+#search-container { position: fixed; top: 70px; left: 10px; z-index: 999997; width: 240px; }
+#dog-search { width: 100%; padding: 8px 12px; border: 2px solid #2c3e50; border-radius: 20px; outline: none; box-shadow: 0 2px 6px rgba(0,0,0,0.2); }
+</style>
+<div id="search-container"><input type="text" id="dog-search" placeholder="Search dogs by name..." oninput="filterDogs()"></div>
+    
+<script>
+function filterDogs() {
+    var input = document.getElementById('dog-search').value.toLowerCase();
+    var items = document.getElementsByClassName('foster-item');
+    for (var i = 0; i < items.length; i++) {
+        var name = items[i].innerText.toLowerCase();
+        items[i].style.display = name.includes(input) ? "" : "none";
+    }
+}
+</script>
+    
+<script>
+    window.markerData = [{"id": "22583108", "details": "<h2>Jessie</h2><b>Status:</b> Available<br><b>Sex:</b> Female<br><b>Age:</b> Adult<br><b>Energy:</b> High<br><b>City:</b> Racine<br><b>State:</b> WI<br><b>Days in Foster:</b> nan<br><br><b>Description:</b><br>2-year-old Dober-girl  Jessie was sitting in a shelter  waiting for the grim reaper to call her number. That day was only days away. Thankfully  United Doberman Rescue (UDR) stepped in  tagged her for safety in our rescue  and gave her the second chance she so desperately deserved. Jessie was welcomed into an amazing  loving foster home where she has received all of the veterinary care she should have had long ago. Spayed  vaccinated  heartworm checked and chipped. Now  she&#39;s almost ready to begin the next chapter of her life&mdash;with a family of her own.Jessie is truly a gentle  sweet Doberman whose only wish is to love and be loved. She does wonderfully with other dogs and has enjoyed being part of her foster family. Whether she&#39;s spending time with her canine companions or soaking up affection from her people  Jessie is simply happiest being included and loved.We will never understand how a Doberman with&nbsp;such a wonderful temperament ended up in an overcrowded shelter where healthy  loving dogs lose their lives simply because there wasn&#39;t enough space. Those days are behind her now. Jessie is safe  cherished  and now will be searching for the forever family she has always deserved.If you open your heart to Jessie  she promises to fill your home with unwavering loyalty  unconditional love  and the special devotion that only a Doberman can give. Every day  her gratitude will shine through in the way she looks at you  leans into you  and loves you with her whole heart. The lucky person who adopts Jessie won&#39;t just be saving a dog&mdash;they&#39;ll be gaining a best friend for years to come.Jessie&#39;s story is  unfortunately  the story of far too many Dobermans. But thanks to the angels who helped guide her to United Doberman Rescue  her story now has the chance for a happy ending. Could you be the one to give her that ending?If you think Jessie could be the missing piece of your family  visit www.uniteddobermanrescue.org and complete an adoption application if you qualify.Jessie is no longer waiting for her life to end&mdash;she&#39;s waiting for someone to show her that her best days are still ahead. \u2764\ufe0f", "photos": "", "videos": "", "links": "<a href='https://www.uniteddobermanrescue.org/animals/detail?AnimalID=22583108' target='_blank'>Public Website - Full Profile</a><br><br><a href='https://rescuegroups.org/manage/animals#datatable74={%22limit%22:25,%22page%22:1,%22start%22:0,%22sortbyFieldID%22:1499,%22sortorder%22:%22asc%22,%22viewID%22:%22112%22,%22viewType%22:%22Built-in%22,%22togglethumbnails%22:%22Off%22,%22searchEnabled%22:false}&' target='_blank'>RescueGroups - Available Dogs Report</a><br><br><a href='https://rescuegroups.org/manage/animals_intakes#datatable387={%22limit%22:%2225%22,%22page%22:1,%22start%22:0,%22sortbyFieldID%22:%22%22,%22sortorder%22:%22asc%22,%22viewID%22:%22211%22,%22viewType%22:%22Built-in%22,%22searchEnabled%22:false}&' target='_blank'>RescueGroups - Intake Report</a>"}, {"id": "22688203", "details": "<h2>Bindi</h2><b>Status:</b> Available<br><b>Sex:</b> Female<br><b>Age:</b> Young<br><b>Energy:</b> High<br><b>City:</b> Racine<br><b>State:</b> WI<br><b>Days in Foster:</b> nan<br><br><b>Description:</b><br>Meet Brindi\u2026 aka Bindi! \u2764\ufe0fSometimes rescue comes down to being in the wrong place at exactly the right time. That\u2019s how 2-year-old Bindi came into our lives \u2014 and this gorgeous Plott Hound mix is the reason we said YES. Bindi is an absolute LOVE. She is wonderful with other dogs  LOVES cats  and has that sweet  soulful hound personality that makes you wonder how anyone could have ever let this girl down.But here\u2019s the good news\u2026 her past is behind her  and her future is looking VERY lucky. Because somewhere out there is one very fortunate family who is going to hit the Plott Hound jackpot. And trust us \u2014 you\u2019re getting a LOT of dog with this girl!A few fun Plott Hound facts: Plott Hounds are the official state dog of North Carolina. They were originally developed for hunting big game and are known for their courage  determination  and athleticism. They\u2019re intelligent  loyal  energetic  and can form incredibly strong bonds with their people. Their distinctive brindle coats are one of the breed's signature features \u2014 and Bindi is absolutely rocking hers! And they are NOT short on personality! A Plott Hound will happily keep you entertained  involved  and occasionally wondering who is actually in charge of the household. Bindi is the kind of girl who deserves a family that will love her for all the years ahead. She has so much love to give and is ready to find the people who will make her part of the family for good.She was in the wrong place at the wrong time\u2026\u2026but somehow  she ended up in exactly the right rescue. \u2764\ufe0fNow all she needs is the right family.Could that be you?If you\u2019re ready for a beautiful  loving  fun-loving Plott Hound mix to become your best friend  apply today! Please apply at: www.uniteddobermanrescue.orgBindi is coming for the title of \u201cBest Dog You Ever Had.\u201d And honestly\u2026 we think she has a pretty good shot at winning. ", "photos": "", "videos": "", "links": "<a href='https://www.uniteddobermanrescue.org/animals/detail?AnimalID=22688203' target='_blank'>Public Website - Full Profile</a><br><br><a href='https://rescuegroups.org/manage/animals#datatable74={%22limit%22:25,%22page%22:1,%22start%22:0,%22sortbyFieldID%22:1499,%22sortorder%22:%22asc%22,%22viewID%22:%22112%22,%22viewType%22:%22Built-in%22,%22togglethumbnails%22:%22Off%22,%22searchEnabled%22:false}&' target='_blank'>RescueGroups - Available Dogs Report</a><br><br><a href='https://rescuegroups.org/manage/animals_intakes#datatable387={%22limit%22:%2225%22,%22page%22:1,%22start%22:0,%22sortbyFieldID%22:%22%22,%22sortorder%22:%22asc%22,%22viewID%22:%22211%22,%22viewType%22:%22Built-in%22,%22searchEnabled%22:false}&' target='_blank'>RescueGroups - Intake Report</a>"}, {"id": "22694555", "details": "<h2>Diamond</h2><b>Status:</b> Available<br><b>Sex:</b> Female<br><b>Age:</b> Adult<br><b>Energy:</b> High<br><b>City:</b> Glendale<br><b>State:</b> AZ<br><b>Days in Foster:</b> 5.0<br><br><b>Description:</b><br>Meet Diamond! Around 2 years old. Diamond is a girl with quite the story. She was abandoned at a boarding facility for c;ose tp a year in California  but despite everything she has been through  this sweet girl has come out the other side with such a fun&nbsp;personality! She is truly one of those dogs who makes you smile just by being herself.&nbsp;Diamond is dog-friendly but more on the shy side until she warms up.&nbsp;She loves having little conversations and is not shy about letting you know exactly what she thinks. Her silly personality makes her so much fun to be around  and she has such a big  lovable presence.It&rsquo;s hard to believe that someone could abandon such a wonderful  young&nbsp;girl  but Diamond is not letting her past define her. She is happy  playful  curious  and ready to soak up all the love and attention she deserves. www.uniteddobermanrescue.org", "photos": "", "videos": "", "links": "<a href='https://www.uniteddobermanrescue.org/animals/detail?AnimalID=22694555' target='_blank'>Public Website - Full Profile</a><br><br><a href='https://rescuegroups.org/manage/animals#datatable74={%22limit%22:25,%22page%22:1,%22start%22:0,%22sortbyFieldID%22:1499,%22sortorder%22:%22asc%22,%22viewID%22:%22112%22,%22viewType%22:%22Built-in%22,%22togglethumbnails%22:%22Off%22,%22searchEnabled%22:false}&' target='_blank'>RescueGroups - Available Dogs Report</a><br><br><a href='https://rescuegroups.org/manage/animals_intakes#datatable387={%22limit%22:%2225%22,%22page%22:1,%22start%22:0,%22sortbyFieldID%22:%22%22,%22sortorder%22:%22asc%22,%22viewID%22:%22211%22,%22viewType%22:%22Built-in%22,%22searchEnabled%22:false}&' target='_blank'>RescueGroups - Intake Report</a>"}, {"id": "22570368", "details": "<h2>Atlas aka Doby</h2><b>Status:</b> Available<br><b>Sex:</b> Male<br><b>Age:</b> Adult<br><b>Energy:</b> High<br><b>City:</b> Verona<br><b>State:</b> ND<br><b>Days in Foster:</b> 54.0<br><br><b>Description:</b><br>1 year old Doby came to us under difficult circumstances. He was dropped off at a foster&#39;s boarding facility without official approval and arrived with almost no information. The only details we were given were that he previously lived with another dog and with children. He was known simply as &quot;Doby.&quot;&nbsp;Since arriving  Doby&nbsp;has shown us that he is a very scared and uncertain boy who is struggling to make sense of all the changes in his life. Right now  he needs time  patience  and understanding as he learns that he is safe. While he is beginning to show glimpses of who he truly is  he is not the type of dog who will immediately trust strangers or settle into a new home overnight.Doby is looking for an experienced  dog-savvy home that understands the challenges of helping a dog with a difficult and largely unknown past. His future family must be willing to go at his pace  build trust through consistency  and provide the structure and support he needs to gain confidence.Because of his fear and uncertainty  Doby&nbsp;will require a secure physical fence. A tall privacy fence or a very tall chain-link fence is non-negotiable. He is not a candidate for an invisible fence  tie-out  or an unfenced property.Doby has lived with children ages 1 year to 9 years and two other dogs  a small Yorkie and a large lab  who we are told bossed Doby around. Doby LOVES other dogs!!! He has been thriving playing with the other dogs at daycare! Helping him learn that the world isn&#39;t such a scary place could be incredibly rewarding. He deserves a family willing to see past his fear and give him the chance to finally feel safe  loved  and understood.If you have the experience  patience  and commitment to help Doby&nbsp;write a new chapter  he is waiting for someone to believe in him. \u2764\ufe0f www.uniteddobermanrescue.org", "photos": "", "videos": "", "links": "<a href='https://www.uniteddobermanrescue.org/animals/detail?AnimalID=22570368' target='_blank'>Public Website - Full Profile</a><br><br><a href='https://rescuegroups.org/manage/animals#datatable74={%22limit%22:25,%22page%22:1,%22start%22:0,%22sortbyFieldID%22:1499,%22sortorder%22:%22asc%22,%22viewID%22:%22112%22,%22viewType%22:%22Built-in%22,%22togglethumbnails%22:%22Off%22,%22searchEnabled%22:false}&' target='_blank'>RescueGroups - Available Dogs Report</a><br><br><a href='https://rescuegroups.org/manage/animals_intakes#datatable387={%22limit%22:%2225%22,%22page%22:1,%22start%22:0,%22sortbyFieldID%22:%22%22,%22sortorder%22:%22asc%22,%22viewID%22:%22211%22,%22viewType%22:%22Built-in%22,%22searchEnabled%22:false}&' target='_blank'>RescueGroups - Intake Report</a>"}, {"id": "22511594", "details": "<h2>Bo Adoption Pending!</h2><b>Status:</b> Available<br><b>Sex:</b> Male<br><b>Age:</b> Baby<br><b>Energy:</b> High<br><b>City:</b> WICHITA<br><b>State:</b> KS<br><b>Days in Foster:</b> 74.0<br><br><b>Description:</b><br>Meet Bo! Say hello to Bo  an adorable Dobie puppy! This handsome little guy and his brother Milo were given a second chance after a compassionate Good Samaritan rescued them when they were found dumped on their property. Bo hasn&#39;t let his difficult beginning dampen his spirit. He is a happy  goofy  fun-loving puppy who approaches life with excitement and curiosity. Whether he&#39;s wrestling with his brother  exploring something new  or looking for attention from his people  Bo is always ready to bring a smile to your face. As a typical puppy  Bo is full of energy and eager to learn. He&#39;ll thrive with a family committed to helping him grow into the incredible dog he&#39;s meant to be through training  socialization  exercise  and lots of love. His friendly personality and playful nature make him a great candidate for just about any active home. Bo is ready to leave his past behind and start the next chapter of his life with a family of his own. Could that be you? \u2764\ufe0f Bo requires a fenced yard and people committed to training and socializing this handsome guy. If interested please go to our website at www.uniteddobermanrescue.org   read our adoption policy and requirements  then fill out the application to adopt this little guy if you qualify!", "photos": "", "videos": "", "links": "<a href='https://www.uniteddobermanrescue.org/animals/detail?AnimalID=22511594' target='_blank'>Public Website - Full Profile</a><br><br><a href='https://rescuegroups.org/manage/animals#datatable74={%22limit%22:25,%22page%22:1,%22start%22:0,%22sortbyFieldID%22:1499,%22sortorder%22:%22asc%22,%22viewID%22:%22112%22,%22viewType%22:%22Built-in%22,%22togglethumbnails%22:%22Off%22,%22searchEnabled%22:false}&' target='_blank'>RescueGroups - Available Dogs Report</a><br><br><a href='https://rescuegroups.org/manage/animals_intakes#datatable387={%22limit%22:%2225%22,%22page%22:1,%22start%22:0,%22sortbyFieldID%22:%22%22,%22sortorder%22:%22asc%22,%22viewID%22:%22211%22,%22viewType%22:%22Built-in%22,%22searchEnabled%22:false}&' target='_blank'>RescueGroups - Intake Report</a>"}, {"id": "22460159", "details": "<h2>Diana</h2><b>Status:</b> Available<br><b>Sex:</b> Female<br><b>Age:</b> Adult<br><b>Energy:</b> Moderate<br><b>City:</b> Harrisburg<br><b>State:</b> SD<br><b>Days in Foster:</b> 90.0<br><br><b>Description:</b><br>Meet Princess Diana Diana&rsquo;s story started in heartbreak when she was found as a stray  but despite whatever she experienced before coming into rescue  she has remained incredibly loving with people and ready to soak up every bit of kindness she can get. Now safe with United Doberman Rescue  this beautiful girl is finally getting the care and stability she deserves while she prepares for her future forever home. Right now  Diana is undergoing treatment for heartworm disease. Heartworm treatment is a long process that requires rest  patience  and careful recovery  but Diana has been taking it all like a champ. Because of this  she is not yet available for adoption  but we wanted everyone to get to know this special girl while she heals. Once her treatment is complete and she is medically cleared  she will officially begin searching for her forever family. She has done wonderfully with people and has proven herself to be affectionate  manageable  and eager to bond with her humans. She truly loves attention and enjoys being close to the people she trusts. Whether it&rsquo;s soaking up pets  following you around  or simply being near her humans  Diana has a sweet side that shines through quickly. With other dogs  Diana can be selective and does show some resource guarding tendencies  especially around things she values. This could be from her being a stray and having to fend for herself on the streets.&nbsp;However  she remains manageable and responsive with proper structure and handling. Because of this  she will need an adopter who understands dog behavior  respects boundaries  and is committed to continuing the guidance and management that helps her succeed. Rescue is all about giving dogs the chance they deserve  and Diana absolutely deserves that chance. Like many Dobermans  Diana is intelligent  observant  and deeply loyal. Once she forms a connection  she bonds hard and wants to be part of her person&rsquo;s world. Beneath her tough moments is a dog who simply wants safety  consistency  and someone willing to understand her. For now  Diana&rsquo;s main job is to focus on healing and recovery. We are so proud of the progress she&rsquo;s making already  and we know her future is bright. When the time comes  we hope to find her a home that sees her not for the hardships she&rsquo;s faced  but for the incredible dog she is becoming.", "photos": "", "videos": "", "links": "<a href='https://www.uniteddobermanrescue.org/animals/detail?AnimalID=22460159' target='_blank'>Public Website - Full Profile</a><br><br><a href='https://rescuegroups.org/manage/animals#datatable74={%22limit%22:25,%22page%22:1,%22start%22:0,%22sortbyFieldID%22:1499,%22sortorder%22:%22asc%22,%22viewID%22:%22112%22,%22viewType%22:%22Built-in%22,%22togglethumbnails%22:%22Off%22,%22searchEnabled%22:false}&' target='_blank'>RescueGroups - Available Dogs Report</a><br><br><a href='https://rescuegroups.org/manage/animals_intakes#datatable387={%22limit%22:%2225%22,%22page%22:1,%22start%22:0,%22sortbyFieldID%22:%22%22,%22sortorder%22:%22asc%22,%22viewID%22:%22211%22,%22viewType%22:%22Built-in%22,%22searchEnabled%22:false}&' target='_blank'>RescueGroups - Intake Report</a>"}, {"id": "22176709", "details": "<h2>Maggie</h2><b>Status:</b> Available<br><b>Sex:</b> Female<br><b>Age:</b> Adult<br><b>Energy:</b> High<br><b>City:</b> Lidgerwood<br><b>State:</b> ND<br><b>Days in Foster:</b> 104.0<br><br><b>Description:</b><br>Meet purebred  blue Doberman named Maggie!&nbsp;Maggie is a stunning 5-year-old blue purebred Doberman Pinscher with beauty  personality  and just the right amount of sass. But Maggie doesn&rsquo;t come alone&mdash;she&rsquo;s part of a package deal with her best friend  her partner-in-crime  her ride-or-die&hellip; Vinny.These two are completely bonded and take on the world side by side. Where you find Maggie  you&rsquo;ll find Vinny close behind (or vice versa). Whether they&rsquo;re lounging  exploring  or just keeping an eye on things  they do it together&mdash;and we are absolutely committed to keeping them that way.Due to life changes in their family  Maggie and Vinny are starting over. Through no fault of their own  they&rsquo;ve lost the home they knew and are now looking for a fresh start&mdash;with each other.Let&rsquo;s be clear: if they are adopted  it&rsquo;s together. No exceptions. Their bond is unbreakable  and they deserve a home that will honor that.The good news? With these two  you&rsquo;re getting double the love  double the loyalty  and double the Doberman charm. They don&rsquo;t ask for much&mdash;just a loving home where they can stay side by side like they&rsquo;ve always been.If you&rsquo;re ready to open your heart and home to this incredible duo  apply today:www.uniteddobermanrescue.org&nbsp;", "photos": "", "videos": "", "links": "<a href='https://www.uniteddobermanrescue.org/animals/detail?AnimalID=22176709' target='_blank'>Public Website - Full Profile</a><br><br><a href='https://rescuegroups.org/manage/animals#datatable74={%22limit%22:25,%22page%22:1,%22start%22:0,%22sortbyFieldID%22:1499,%22sortorder%22:%22asc%22,%22viewID%22:%22112%22,%22viewType%22:%22Built-in%22,%22togglethumbnails%22:%22Off%22,%22searchEnabled%22:false}&' target='_blank'>RescueGroups - Available Dogs Report</a><br><br><a href='https://rescuegroups.org/manage/animals_intakes#datatable387={%22limit%22:%2225%22,%22page%22:1,%22start%22:0,%22sortbyFieldID%22:%22%22,%22sortorder%22:%22asc%22,%22viewID%22:%22211%22,%22viewType%22:%22Built-in%22,%22searchEnabled%22:false}&' target='_blank'>RescueGroups - Intake Report</a>"}, {"id": "22176710", "details": "<h2>Vinny</h2><b>Status:</b> Available<br><b>Sex:</b> Male<br><b>Age:</b> Adult<br><b>Energy:</b> High<br><b>City:</b> Lidgerwood<br><b>State:</b> ND<br><b>Days in Foster:</b> 104.0<br><br><b>Description:</b><br>Meet purebred Doberman Vinny! Vinny&nbsp;is a handsome 7-year-old black and rust. been there done that  purebred Doberman gentleman with a loyal heart and a soft spot for his best girl  Maggie. Wherever life takes him  one thing is non-negotiable&mdash;he&rsquo;s bringing Maggie along. These two are a bonded pair in every sense of the word  and their connection is something truly special.Vinny is the steady presence to Maggie&rsquo;s sparkle&mdash;the calm  devoted companion who&rsquo;s always nearby  always watching out for his girl  and always ready to lean in for some love. He&rsquo;s the kind of dog who forms deep connections and stays true to his people through everything.Through no fault of their own  Vinny&nbsp;and Maggie are starting over after changes in their family turned their world upside down. But if there&rsquo;s one thing Vinny&nbsp;is sure of  it&rsquo;s that as long as he has Maggie by his side  he&rsquo;ll be just fine.And that&rsquo;s exactly how it will stay.If adopted  Vinny and Maggie go together. No exceptions. Their bond is unbreakable  and they deserve a home that sees the beauty in that kind of loyalty.What you&rsquo;ll get in return? Double the Dobermans  double the love  and a pair of best friends who will fill your home with companionship  devotion  and heart.If you&rsquo;re ready to welcome both Vinny&nbsp;and Maggie into your life  apply today:www.uniteddobermanrescue.org&nbsp;", "photos": "", "videos": "", "links": "<a href='https://www.uniteddobermanrescue.org/animals/detail?AnimalID=22176710' target='_blank'>Public Website - Full Profile</a><br><br><a href='https://rescuegroups.org/manage/animals#datatable74={%22limit%22:25,%22page%22:1,%22start%22:0,%22sortbyFieldID%22:1499,%22sortorder%22:%22asc%22,%22viewID%22:%22112%22,%22viewType%22:%22Built-in%22,%22togglethumbnails%22:%22Off%22,%22searchEnabled%22:false}&' target='_blank'>RescueGroups - Available Dogs Report</a><br><br><a href='https://rescuegroups.org/manage/animals_intakes#datatable387={%22limit%22:%2225%22,%22page%22:1,%22start%22:0,%22sortbyFieldID%22:%22%22,%22sortorder%22:%22asc%22,%22viewID%22:%22211%22,%22viewType%22:%22Built-in%22,%22searchEnabled%22:false}&' target='_blank'>RescueGroups - Intake Report</a>"}, {"id": "22399870", "details": "<h2>Tootsie</h2><b>Status:</b> Available<br><b>Sex:</b> Female<br><b>Age:</b> Young<br><b>Energy:</b> High<br><b>City:</b> Amado<br><b>State:</b> AZ<br><b>Days in Foster:</b> 121.0<br><br><b>Description:</b><br>Meet 1 year old  cropped docked purebred Doberman Tootsie. Tootsie is a barely 1-year-old young Doberman girl whose story is one of survival  resilience  and the slow  brave journey back to trust.She is cropped and docked  and still just a baby&mdash;yet she has already endured more than most dogs ever should.Tootsie was picked up in California and spent over two long months in a Los Angeles shelter&mdash;surrounded by constant noise  barking 24/7  and overwhelming chaos. For a sensitive breed like a Doberman  that environment can be devastating. Tootsie completely shut down. She stopped responding to people  retreating into herself just to cope.The shelter labeled her &ldquo;unadoptable&rdquo; and placed her on the euthanasia list. Thankfully  that wasn&rsquo;t the end of her story.With the help of our incredible partner rescues in California  Tootsie was pulled to safety just in time. Now  she is finally in a quiet place where healing can begin. Eventually Tootsie made her way to Arizona with UDR alumni  Casper  and her foster family.Tootsie has experienced significant trauma and is still learning that humans can be kind  patient  and safe. We know she was originally picked up with a male pit bull who may have been her protector&mdash;her guide in a confusing world. Now  she&rsquo;s navigating life on her own  and it&rsquo;s not easy. But she&rsquo;s trying.Every small step forward is a victory. We are also learning more about her personality as she decompresses. Tootsie finds comfort in her crate and will often seek it out as her safe space&mdash;it&rsquo;s where she feels most secure. She is fully potty trained  but in true &ldquo;safe-zone&rdquo; fashion  she may choose to settle in her crate for long stretches and will sometimes need gentle encouragement to come out and engage with the world around her. For her  the crate is not a problem&mdash;it&rsquo;s her refuge.Right now  Tootsie is decompressing and focusing on building confidence. She will need a fenced yard and humans who can be super patient with her healing and bonding journey. She came so close to losing her life  and she deserves the chance to truly live it.We won&rsquo;t give up on Tootsie&mdash;and one day  she will have a family to call her own. Tootsie will need a high fenced yard and gps collar as she is a serious flight risk. Sudden noises like a car honk  siren  bangs send her into a tailspin of fear. She also prefers the company of other dogs so a home with other canines is a must. Her best pal right now is a tiny Yorkie!&nbsp;&nbsp;Please read our adoption policy and if you qualify  please&nbsp;apply&nbsp;at:&nbsp;www.uniteddobermanrescue.org", "photos": "", "videos": "", "links": "<a href='https://www.uniteddobermanrescue.org/animals/detail?AnimalID=22399870' target='_blank'>Public Website - Full Profile</a><br><br><a href='https://rescuegroups.org/manage/animals#datatable74={%22limit%22:25,%22page%22:1,%22start%22:0,%22sortbyFieldID%22:1499,%22sortorder%22:%22asc%22,%22viewID%22:%22112%22,%22viewType%22:%22Built-in%22,%22togglethumbnails%22:%22Off%22,%22searchEnabled%22:false}&' target='_blank'>RescueGroups - Available Dogs Report</a><br><br><a href='https://rescuegroups.org/manage/animals_intakes#datatable387={%22limit%22:%2225%22,%22page%22:1,%22start%22:0,%22sortbyFieldID%22:%22%22,%22sortorder%22:%22asc%22,%22viewID%22:%22211%22,%22viewType%22:%22Built-in%22,%22searchEnabled%22:false}&' target='_blank'>RescueGroups - Intake Report</a>"}, {"id": "22282191", "details": "<h2>Gigi</h2><b>Status:</b> Intake<br><b>Sex:</b> Female<br><b>Age:</b> Adult<br><b>Energy:</b> High<br><b>City:</b> New Ulm<br><b>State:</b> MN<br><b>Days in Foster:</b> 172.0<br><br><b>Description:</b><br>nan", "photos": "", "videos": "", "links": "<a href='https://www.uniteddobermanrescue.org/animals/detail?AnimalID=22282191' target='_blank'>Public Website - Full Profile</a><br><br><a href='https://rescuegroups.org/manage/animals#datatable74={%22limit%22:25,%22page%22:1,%22start%22:0,%22sortbyFieldID%22:1499,%22sortorder%22:%22asc%22,%22viewID%22:%22112%22,%22viewType%22:%22Built-in%22,%22togglethumbnails%22:%22Off%22,%22searchEnabled%22:false}&' target='_blank'>RescueGroups - Available Dogs Report</a><br><br><a href='https://rescuegroups.org/manage/animals_intakes#datatable387={%22limit%22:%2225%22,%22page%22:1,%22start%22:0,%22sortbyFieldID%22:%22%22,%22sortorder%22:%22asc%22,%22viewID%22:%22211%22,%22viewType%22:%22Built-in%22,%22searchEnabled%22:false}&' target='_blank'>RescueGroups - Intake Report</a>"}, {"id": "22222145", "details": "<h2>Nellie</h2><b>Status:</b> Available<br><b>Sex:</b> Female<br><b>Age:</b> Adult<br><b>Energy:</b> Moderate<br><b>City:</b> BODE<br><b>State:</b> IA<br><b>Days in Foster:</b> 200.0<br><br><b>Description:</b><br>Meet Nellie!&nbsp;We think Nellie is around 4-6 years old&mdash;quite a bit younger than the shelter originally estimated. Apparently  even shelters can get a lady&#39;s age wrong!This gorgeous blue Doberman has the classic cropped ears and docked tail that make people stop and admire her. But Nellie&#39;s real beauty comes from her sweet  expressive eyes and her loving personality.When Nellie first came into rescue  she had some hair thinning and patchy hair loss. Typical with blue Dobermans but her hair is getting thicker! She&#39;s feeling so much better these days  although she may always need a little extra skin care and a sweater collection  such a Diva!&nbsp;She was also heartworm positive when she arrived in January  but she has successfully completed her treatment  thanks to some loving rescue angels who footed her entire vet bill with the best specialist in the USA  they even did a full cardio work up on Nellie who has been found&nbsp;clear of any kind of heart issues!&nbsp; This girl&nbsp;has been given a clean bill of health by the best doctors a dog could ever want. She&#39;s healthy  happy  and finally ready to find the forever home she&#39;s been waiting for.Nellie is incredibly smart and absolutely loves training. She enjoys learning new things  thrives on attention  and forms deep bonds with her people. She&#39;s affectionate  loyal  and happiest when she&#39;s spending time with her favorite humans.Now  let&#39;s talk about Nellie&#39;s one little request... She has informed us (quite clearly  we might add) that she&#39;d really prefer to be the Queen of Her Castle. While she can be selective about other dogs  she has absolutely no doubts about people&mdash;they&#39;re her favorite! She&#39;d love a home where she can soak up all the attention  supervise the household  and keep a watchful eye on her kingdom from a securely fenced yard. Neighborhood squirrels have been put on notice. Oh and no cats please.&nbsp;Poor Nellie has been patiently waiting in rescue far longer than she should have. Frankly  she&#39;s starting to wonder if she&#39;s accidentally become part of the office furniture. Every day she checks the schedule  wondering when her family is finally going to show up. She&#39;s beginning to suspect everyone thinks she&#39;s on the management team. We are going to have to start giving her a paycheck if she doesn&#39;t find her family soon!Nellie promises to be your loyal shadow  your faithful protector  your walking buddy  your couch companion  and your biggest fan. In return  she asks for belly rubs  a comfy bed  plenty of love  treats and the official title of Chief Executive Doberman of your household.If you&#39;re looking for a loyal best friend with a wonderful sense of humor  a gentle soul  and just the right amount of royal attitude  Nellie is ready to rule your heart.Please! Don&#39;t make Her Majesty wait any longer. She has a kingdom to run&mdash;and she&#39;s hoping it&#39;s yours. \u2764\ufe0fGo on over to our website at www.uniteddobermanrescue.org and read our adoption requirements. If you qualify  please fill out a adoption application! Hail Queen Nellie!&nbsp;", "photos": "", "videos": "", "links": "<a href='https://www.uniteddobermanrescue.org/animals/detail?AnimalID=22222145' target='_blank'>Public Website - Full Profile</a><br><br><a href='https://rescuegroups.org/manage/animals#datatable74={%22limit%22:25,%22page%22:1,%22start%22:0,%22sortbyFieldID%22:1499,%22sortorder%22:%22asc%22,%22viewID%22:%22112%22,%22viewType%22:%22Built-in%22,%22togglethumbnails%22:%22Off%22,%22searchEnabled%22:false}&' target='_blank'>RescueGroups - Available Dogs Report</a><br><br><a href='https://rescuegroups.org/manage/animals_intakes#datatable387={%22limit%22:%2225%22,%22page%22:1,%22start%22:0,%22sortbyFieldID%22:%22%22,%22sortorder%22:%22asc%22,%22viewID%22:%22211%22,%22viewType%22:%22Built-in%22,%22searchEnabled%22:false}&' target='_blank'>RescueGroups - Intake Report</a>"}, {"id": "22205987", "details": "<h2>Onyx</h2><b>Status:</b> Available<br><b>Sex:</b> Male<br><b>Age:</b> Young<br><b>Energy:</b> High<br><b>City:</b> Milwaukee<br><b>State:</b> WI<br><b>Days in Foster:</b> 208.0<br><br><b>Description:</b><br>Meet Doberman puppy Onyx!&nbsp; Onyx is a 11-month-old melanistic Doberman puppy with a gentle soul and a powerful comeback story. He and his brother Bonsai were found as strays and came into rescue in rough shape&mdash;both boys were very skinny  one required stitches  and the other was running a fever. All healthy now and fully vetted  vaccinated and neutered  he is ready to find his forever home! Thanks to prompt veterinary care  good nutrition  and lots of love  both pups have made an amazing recovery and are now doing great! Onyx is dog friendly and does well around other pups. . Like any puppy his age  Onyx is curious  learning about the world  and ready to bond deeply with his people. He&rsquo;s at the perfect stage of life to grow  train  and build confidence alongside a committed forever family. Onyx has already proven how resilient he is&mdash;now he&rsquo;s ready for a safe  loving forever home where he can continue to thrive. If you&rsquo;re looking for a pup to grow with and love for a lifetime  Onyx might be your perfect match. www.uniteddobermanrescue.org", "photos": "", "videos": "", "links": "<a href='https://www.uniteddobermanrescue.org/animals/detail?AnimalID=22205987' target='_blank'>Public Website - Full Profile</a><br><br><a href='https://rescuegroups.org/manage/animals#datatable74={%22limit%22:25,%22page%22:1,%22start%22:0,%22sortbyFieldID%22:1499,%22sortorder%22:%22asc%22,%22viewID%22:%22112%22,%22viewType%22:%22Built-in%22,%22togglethumbnails%22:%22Off%22,%22searchEnabled%22:false}&' target='_blank'>RescueGroups - Available Dogs Report</a><br><br><a href='https://rescuegroups.org/manage/animals_intakes#datatable387={%22limit%22:%2225%22,%22page%22:1,%22start%22:0,%22sortbyFieldID%22:%22%22,%22sortorder%22:%22asc%22,%22viewID%22:%22211%22,%22viewType%22:%22Built-in%22,%22searchEnabled%22:false}&' target='_blank'>RescueGroups - Intake Report</a>"}, {"id": "21126202", "details": "<h2>Dragon</h2><b>Status:</b> Available<br><b>Sex:</b> Male<br><b>Age:</b> Adult<br><b>Energy:</b> High<br><b>City:</b> Milwaukee<br><b>State:</b> WI<br><b>Days in Foster:</b> 531.0<br><br><b>Description:</b><br>Meet Dragon  a handsome 3-year-old Doberman with a heart as big as his playful spirit! Rescued from a high-kill shelter in California  Dragon is now fully vetted  neutered  and ready to start his new chapter with a loving family. This sweet boy adores people and thrives on attention and affection. Dragon is a bundle of energy and would be the perfect match for an active home that can keep up with his zest for life.While he&rsquo;s a sweetheart and LOVES human company  Dragon has been doing great with other dogs  tends to be timid is still learning his canine manners.A bundle of wrapped up energy a active home will be best. If you&#39;re looking for a loyal  energetic companion to share your adventures  Dragon might just be your perfect match!&nbsp;", "photos": "", "videos": "", "links": "<a href='https://www.uniteddobermanrescue.org/animals/detail?AnimalID=21126202' target='_blank'>Public Website - Full Profile</a><br><br><a href='https://rescuegroups.org/manage/animals#datatable74={%22limit%22:25,%22page%22:1,%22start%22:0,%22sortbyFieldID%22:1499,%22sortorder%22:%22asc%22,%22viewID%22:%22112%22,%22viewType%22:%22Built-in%22,%22togglethumbnails%22:%22Off%22,%22searchEnabled%22:false}&' target='_blank'>RescueGroups - Available Dogs Report</a><br><br><a href='https://rescuegroups.org/manage/animals_intakes#datatable387={%22limit%22:%2225%22,%22page%22:1,%22start%22:0,%22sortbyFieldID%22:%22%22,%22sortorder%22:%22asc%22,%22viewID%22:%22211%22,%22viewType%22:%22Built-in%22,%22searchEnabled%22:false}&' target='_blank'>RescueGroups - Intake Report</a>"}];
+    window.needsData = [{"details": "<h2>Chester Foster needed!!!</h2><b>Status:</b> Available<br><b>Sex:</b> Male<br><b>Description:</b><br>Meet Chester! Chester is a 2-year-old TINY terrier mix who weighs under 10 pounds fully wet. Yes  you read that correctly. This little dude is basically a walking bag of Pupperoni.&nbsp;But don&rsquo;t let his tiny size fool you. Chester has the confidence of a 100-pound dog and the snack-detection abilities of a bloodhound.Chester is:*Dog approved* Cat approved* RABBIT approved &mdash; and apparently rabbits are his love language because his best friend is a bunny!&nbsp;*Kid approved*Housebroken*Crate trained*A nice little leash walker*Vaccinated*Microchipped*Heartworm negativeBasically  Chester has his r&eacute;sum&eacute; together. He&rsquo;s polite. He&rsquo;s social. He&rsquo;s adorable. He has excellent references from dogs  cats  children AND a rabbit. What more could you possibly want from a tiny roommate?He is currently looking for a foster home or  preferably  his forever family. Please apply today!!Chester promises to bring approximately 9.8 pounds of love  approximately 47 pounds of personality  and absolutely ZERO ability to understand personal space.He may be tiny  but he is fully prepared to occupy your entire couch  your lap  your heart  and possibly your bed. If you have room in your home for this pint-sized comedian  please apply at:www.uniteddobermanrescue.orgCome get your Chester before somebody else realizes that this little guy is basically the canine version of finding an extra fry at the bottom of the bag. \u2764\ufe0f", "photos": "<img src='https://www.uniteddobermanrescue.org/8319/pictures/animals/22688/22688052/103622367.jpg?width=500' style='width:100%; margin-bottom:10px; border-radius:5px;' /><img src='https://www.uniteddobermanrescue.org/8319/pictures/animals/22688/22688052/103622368.jpg?width=500' style='width:100%; margin-bottom:10px; border-radius:5px;' />", "videos": "", "links": "<a href='https://www.uniteddobermanrescue.org/animals/detail?AnimalID=22688052' target='_blank'>Foster Dog's Full Profile</a><br><br><a href='https://rescuegroups.org/manage/animals#datatable74={%22limit%22:25,%22page%22:1,%22start%22:0,%22sortbyFieldID%22:1499,%22sortorder%22:%22asc%22,%22viewID%22:%22112%22,%22viewType%22:%22Built-in%22,%22togglethumbnails%22:%22Off%22,%22searchEnabled%22:false}&' target='_blank'>Rescue Groups - Available Dogs List</a><br><br><a href='https://rescuegroups.org/manage/animals_intakes#datatable387={%22limit%22:%2225%22,%22page%22:1,%22start%22:0,%22sortbyFieldID%22:%22%22,%22sortorder%22:%22asc%22,%22viewID%22:%22211%22,%22viewType%22:%22Built-in%22,%22searchEnabled%22:false}&' target='_blank'>Rescue Groups - Intake</a>"}, {"details": "<h2>Sprinkles</h2><b>Status:</b> Intake<br><b>Sex:</b> Female<br><b>Description:</b><br>LOVES to play ball!!! Hunting prospect!", "photos": "<img src='https://www.uniteddobermanrescue.org/8319/pictures/animals/22688/22688207/103622369.jpg?width=500' style='width:100%; margin-bottom:10px; border-radius:5px;' />", "videos": "", "links": "<a href='https://www.uniteddobermanrescue.org/animals/detail?AnimalID=22688207' target='_blank'>Foster Dog's Full Profile</a><br><br><a href='https://rescuegroups.org/manage/animals#datatable74={%22limit%22:25,%22page%22:1,%22start%22:0,%22sortbyFieldID%22:1499,%22sortorder%22:%22asc%22,%22viewID%22:%22112%22,%22viewType%22:%22Built-in%22,%22togglethumbnails%22:%22Off%22,%22searchEnabled%22:false}&' target='_blank'>Rescue Groups - Available Dogs List</a><br><br><a href='https://rescuegroups.org/manage/animals_intakes#datatable387={%22limit%22:%2225%22,%22page%22:1,%22start%22:0,%22sortbyFieldID%22:%22%22,%22sortorder%22:%22asc%22,%22viewID%22:%22211%22,%22viewType%22:%22Built-in%22,%22searchEnabled%22:false}&' target='_blank'>Rescue Groups - Intake</a>"}, {"details": "<h2>Talos</h2><b>Status:</b> Intake<br><b>Sex:</b> Male<br><b>Description:</b><br>Meet Talos! Talos is a handsome 7-year-old Doberman gentleman looking for a fresh start. He was originally adopted from us as a puppy  but through no fault of his own  he has found himself back in rescue due to a divorce and because he isn&#39;t a good fit for a home with small dogs or kitty friends. It&#39;s truly a heartbreaking situation  but we&#39;re determined to help this wonderful boy find the forever home he deserves.Talos is everything you would expect from a mature male Doberman&mdash;loyal  affectionate  and deeply devoted to his people. He loves being close to his family and is happiest when he&#39;s included in whatever you&#39;re doing. He has a gentle  loving personality with the people he trusts and would make an incredible companion for someone who appreciates the special bond Dobermans are known for.Talos would thrive in a home with no cats or small dogs. He does well with larger dogs that match his size and play style  or he would be perfectly happy soaking up all of the attention as your one and only.At seven years old  Talos is past the puppy antics but still has plenty of love  life  and companionship to offer. If you&#39;re looking for a loyal best friend with a heart of gold  Talos may be the perfect addition to your family. He has not been tested with kids.", "photos": "", "videos": "", "links": "<a href='https://www.uniteddobermanrescue.org/animals/detail?AnimalID=22684654' target='_blank'>Foster Dog's Full Profile</a><br><br><a href='https://rescuegroups.org/manage/animals#datatable74={%22limit%22:25,%22page%22:1,%22start%22:0,%22sortbyFieldID%22:1499,%22sortorder%22:%22asc%22,%22viewID%22:%22112%22,%22viewType%22:%22Built-in%22,%22togglethumbnails%22:%22Off%22,%22searchEnabled%22:false}&' target='_blank'>Rescue Groups - Available Dogs List</a><br><br><a href='https://rescuegroups.org/manage/animals_intakes#datatable387={%22limit%22:%2225%22,%22page%22:1,%22start%22:0,%22sortbyFieldID%22:%22%22,%22sortorder%22:%22asc%22,%22viewID%22:%22211%22,%22viewType%22:%22Built-in%22,%22searchEnabled%22:false}&' target='_blank'>Rescue Groups - Intake</a>"}];
+
+    function toggleFosterList() {
+        var el = document.getElementById('foster-list');
+        if (el) el.style.display = (el.style.display === 'none' || el.style.display === '') ? 'block' : 'none';
+    }
+
+    window.openDogFromList = function(index) {
+        if (window.needsData && window.needsData[index]) {
+            window.updateSidebar(window.needsData[index]);
+        }
+    };
+
+    window.updateSidebar = function(data) {
+        if (!data) return;
+        document.getElementById('photos').innerHTML = data.photos || '';
+        document.getElementById('videos').innerHTML = data.videos || '';
+        document.getElementById('info-text').innerHTML = data.details || '';
+        document.getElementById('links').innerHTML = data.links || '';
+        document.getElementById('sidebar').classList.add('open');
+
+        var tabs = document.getElementsByClassName("tab-content");
+        var buttons = document.getElementsByClassName("tab-btn");
+        for (var i = 0; i < tabs.length; i++) {
+            tabs[i].classList.remove("active");
+            buttons[i].classList.remove("active");
+        }
+        document.getElementById('details').classList.add('active');
+        buttons[0].classList.add("active");
+    };
+</script>
+
+    
+<script>
+function applyPrimaryKeySync() {
+    console.log("Searching for Map and Cluster objects...");
+    
+    var foundMap = null;
+    var foundCluster = null;
+
+    // Search global scope for Leaflet objects
+    for (var key in window) {
+        if (window[key] instanceof L.Map) {
+            foundMap = window[key];
+        }
+        if (window[key] instanceof L.MarkerClusterGroup) {
+            foundCluster = window[key];
+        }
+    }
+
+    if (foundMap && foundCluster && foundCluster._featureGroup) {
+        console.log("Map and Cluster found. Binding clicks...");
+        foundCluster.eachLayer(function(marker) {
+            if (marker instanceof L.Marker && marker.options.animalId) {
+                marker.off('click'); 
+                marker.on('click', function(e) {
+                    var dogId = e.target.options.animalId;
+                    var data = window.markerData.find(d => String(d.id) === String(dogId));
+                    if (data) window.updateSidebar(data);
+                });
+            }
+        });
+        console.log("Sync engine active.");
+    } else {
+        console.log("Still waiting for Leaflet objects... retrying");
+        setTimeout(applyPrimaryKeySync, 1000);
+    }
+}
+setTimeout(applyPrimaryKeySync, 1500);
+</script>
+    
+            <div class="folium-map" id="map_06e64452276951f13ba3f82926034780" ></div>
+        
+</body>
+<script>
+    
+    
+            var map_06e64452276951f13ba3f82926034780 = L.map(
+                "map_06e64452276951f13ba3f82926034780",
+                {
+                    center: [39.5, -98.35],
+                    crs: L.CRS.EPSG3857,
+                    ...{
+  "zoom": 5,
+  "zoomControl": true,
+  "preferCanvas": false,
+}
+
+                }
+            );
+
+            
+
+        
+    
+            var tile_layer_ce54a25c2e7c110a8ee328764274353c = L.tileLayer(
+                "https://tile.openstreetmap.org/{z}/{x}/{y}.png",
+                {
+  "minZoom": 0,
+  "maxZoom": 19,
+  "maxNativeZoom": 19,
+  "noWrap": false,
+  "attribution": "\u0026copy; \u003ca href=\"https://www.openstreetmap.org/copyright\"\u003eOpenStreetMap\u003c/a\u003e contributors",
+  "subdomains": "abc",
+  "detectRetina": false,
+  "tms": false,
+  "opacity": 1,
+}
+
+            );
+        
+    
+            tile_layer_ce54a25c2e7c110a8ee328764274353c.addTo(map_06e64452276951f13ba3f82926034780);
+        
+    
+            var marker_cluster_db34b98687957ecf780e55a607aca4fb = L.markerClusterGroup(
+                {
+}
+            );
+        
+    
+            var marker_d02968538c3e65468ba9b481ea76c349 = L.marker(
+                [42.7313756, -87.7834769],
+                {
+  "animalId": "22583108",
+}
+            ).addTo(marker_cluster_db34b98687957ecf780e55a607aca4fb);
+        
+    
+            var icon_a9b8e4c346aa3a8da7ae9ccc97b73e5e = L.AwesomeMarkers.icon(
+                {
+  "markerColor": "lightred",
+  "iconColor": "white",
+  "icon": "info-sign",
+  "prefix": "glyphicon",
+  "extraClasses": "fa-rotate-0",
+}
+            );
+        
+    
+            marker_d02968538c3e65468ba9b481ea76c349.bindTooltip(
+                `<div>
+                     Jessie
+                 </div>`,
+                {
+  "sticky": true,
+}
+            );
+        
+    
+                marker_d02968538c3e65468ba9b481ea76c349.setIcon(icon_a9b8e4c346aa3a8da7ae9ccc97b73e5e);
+            
+    
+            var marker_5712ff73a1109d090d8de65fa0a250a3 = L.marker(
+                [42.7313756, -87.7834769],
+                {
+  "animalId": "22688203",
+}
+            ).addTo(marker_cluster_db34b98687957ecf780e55a607aca4fb);
+        
+    
+            var icon_35ddb5e75ac15aa02ba42a1fd916f687 = L.AwesomeMarkers.icon(
+                {
+  "markerColor": "lightred",
+  "iconColor": "white",
+  "icon": "info-sign",
+  "prefix": "glyphicon",
+  "extraClasses": "fa-rotate-0",
+}
+            );
+        
+    
+            marker_5712ff73a1109d090d8de65fa0a250a3.bindTooltip(
+                `<div>
+                     Bindi
+                 </div>`,
+                {
+  "sticky": true,
+}
+            );
+        
+    
+                marker_5712ff73a1109d090d8de65fa0a250a3.setIcon(icon_35ddb5e75ac15aa02ba42a1fd916f687);
+            
+    
+            var marker_c01ed1335b93aed6e75c13b37a987bf9 = L.marker(
+                [33.5386858, -112.185994],
+                {
+  "animalId": "22694555",
+}
+            ).addTo(marker_cluster_db34b98687957ecf780e55a607aca4fb);
+        
+    
+            var icon_faca136c446b04ef0e4c2c01a8c9d22d = L.AwesomeMarkers.icon(
+                {
+  "markerColor": "lightred",
+  "iconColor": "white",
+  "icon": "info-sign",
+  "prefix": "glyphicon",
+  "extraClasses": "fa-rotate-0",
+}
+            );
+        
+    
+            marker_c01ed1335b93aed6e75c13b37a987bf9.bindTooltip(
+                `<div>
+                     Diamond
+                 </div>`,
+                {
+  "sticky": true,
+}
+            );
+        
+    
+                marker_c01ed1335b93aed6e75c13b37a987bf9.setIcon(icon_faca136c446b04ef0e4c2c01a8c9d22d);
+            
+    
+            var marker_a106d28872ff398330034190ab41ff65 = L.marker(
+                [46.3638572, -98.0723229],
+                {
+  "animalId": "22570368",
+}
+            ).addTo(marker_cluster_db34b98687957ecf780e55a607aca4fb);
+        
+    
+            var icon_eaed22bb876281461bd28905fa3996c9 = L.AwesomeMarkers.icon(
+                {
+  "markerColor": "red",
+  "iconColor": "white",
+  "icon": "info-sign",
+  "prefix": "glyphicon",
+  "extraClasses": "fa-rotate-0",
+}
+            );
+        
+    
+            marker_a106d28872ff398330034190ab41ff65.bindTooltip(
+                `<div>
+                     Atlas aka Doby
+                 </div>`,
+                {
+  "sticky": true,
+}
+            );
+        
+    
+                marker_a106d28872ff398330034190ab41ff65.setIcon(icon_eaed22bb876281461bd28905fa3996c9);
+            
+    
+            var marker_9f78bf660602d39cac03319e979b6044 = L.marker(
+                [37.6922361, -97.3375448],
+                {
+  "animalId": "22511594",
+}
+            ).addTo(marker_cluster_db34b98687957ecf780e55a607aca4fb);
+        
+    
+            var icon_a5af63d23cbd000d926666c62b60bd1e = L.AwesomeMarkers.icon(
+                {
+  "markerColor": "red",
+  "iconColor": "white",
+  "icon": "info-sign",
+  "prefix": "glyphicon",
+  "extraClasses": "fa-rotate-0",
+}
+            );
+        
+    
+            marker_9f78bf660602d39cac03319e979b6044.bindTooltip(
+                `<div>
+                     Bo Adoption Pending!
+                 </div>`,
+                {
+  "sticky": true,
+}
+            );
+        
+    
+                marker_9f78bf660602d39cac03319e979b6044.setIcon(icon_a5af63d23cbd000d926666c62b60bd1e);
+            
+    
+            var marker_b4f8bede76d1037df290db1b99aea5cc = L.marker(
+                [43.4313466, -96.6985231],
+                {
+  "animalId": "22460159",
+}
+            ).addTo(marker_cluster_db34b98687957ecf780e55a607aca4fb);
+        
+    
+            var icon_4b3c14bf694a0bb8264211d80fbf411e = L.AwesomeMarkers.icon(
+                {
+  "markerColor": "darkred",
+  "iconColor": "white",
+  "icon": "info-sign",
+  "prefix": "glyphicon",
+  "extraClasses": "fa-rotate-0",
+}
+            );
+        
+    
+            marker_b4f8bede76d1037df290db1b99aea5cc.bindTooltip(
+                `<div>
+                     Diana
+                 </div>`,
+                {
+  "sticky": true,
+}
+            );
+        
+    
+                marker_b4f8bede76d1037df290db1b99aea5cc.setIcon(icon_4b3c14bf694a0bb8264211d80fbf411e);
+            
+    
+            var marker_35219b6145cfd028fc14f5a74f30cf9d = L.marker(
+                [46.075516, -97.151755],
+                {
+  "animalId": "22176709",
+}
+            ).addTo(marker_cluster_db34b98687957ecf780e55a607aca4fb);
+        
+    
+            var icon_7f6af2fa0995d7c779aac01a68261d96 = L.AwesomeMarkers.icon(
+                {
+  "markerColor": "darkred",
+  "iconColor": "white",
+  "icon": "info-sign",
+  "prefix": "glyphicon",
+  "extraClasses": "fa-rotate-0",
+}
+            );
+        
+    
+            marker_35219b6145cfd028fc14f5a74f30cf9d.bindTooltip(
+                `<div>
+                     Maggie
+                 </div>`,
+                {
+  "sticky": true,
+}
+            );
+        
+    
+                marker_35219b6145cfd028fc14f5a74f30cf9d.setIcon(icon_7f6af2fa0995d7c779aac01a68261d96);
+            
+    
+            var marker_833301b7fec61a6441fbf585413a9017 = L.marker(
+                [46.075516, -97.151755],
+                {
+  "animalId": "22176710",
+}
+            ).addTo(marker_cluster_db34b98687957ecf780e55a607aca4fb);
+        
+    
+            var icon_ffa6acd5708e8cab1495b62fbb7aee72 = L.AwesomeMarkers.icon(
+                {
+  "markerColor": "darkred",
+  "iconColor": "white",
+  "icon": "info-sign",
+  "prefix": "glyphicon",
+  "extraClasses": "fa-rotate-0",
+}
+            );
+        
+    
+            marker_833301b7fec61a6441fbf585413a9017.bindTooltip(
+                `<div>
+                     Vinny
+                 </div>`,
+                {
+  "sticky": true,
+}
+            );
+        
+    
+                marker_833301b7fec61a6441fbf585413a9017.setIcon(icon_ffa6acd5708e8cab1495b62fbb7aee72);
+            
+    
+            var marker_7d7f62e8efb5853d6252669262ce2d72 = L.marker(
+                [31.685279, -111.0621284],
+                {
+  "animalId": "22399870",
+}
+            ).addTo(marker_cluster_db34b98687957ecf780e55a607aca4fb);
+        
+    
+            var icon_41becf78bf6dea48630f5001b7970595 = L.AwesomeMarkers.icon(
+                {
+  "markerColor": "darkred",
+  "iconColor": "white",
+  "icon": "info-sign",
+  "prefix": "glyphicon",
+  "extraClasses": "fa-rotate-0",
+}
+            );
+        
+    
+            marker_7d7f62e8efb5853d6252669262ce2d72.bindTooltip(
+                `<div>
+                     Tootsie
+                 </div>`,
+                {
+  "sticky": true,
+}
+            );
+        
+    
+                marker_7d7f62e8efb5853d6252669262ce2d72.setIcon(icon_41becf78bf6dea48630f5001b7970595);
+            
+    
+            var marker_c6ba1d9b54f95cdc9e9fda44f5cd5535 = L.marker(
+                [44.3140261, -94.4614177],
+                {
+  "animalId": "22282191",
+}
+            ).addTo(marker_cluster_db34b98687957ecf780e55a607aca4fb);
+        
+    
+            var icon_129a713941db993bfa4873a99db3b09e = L.AwesomeMarkers.icon(
+                {
+  "markerColor": "darkred",
+  "iconColor": "white",
+  "icon": "info-sign",
+  "prefix": "glyphicon",
+  "extraClasses": "fa-rotate-0",
+}
+            );
+        
+    
+            marker_c6ba1d9b54f95cdc9e9fda44f5cd5535.bindTooltip(
+                `<div>
+                     Gigi
+                 </div>`,
+                {
+  "sticky": true,
+}
+            );
+        
+    
+                marker_c6ba1d9b54f95cdc9e9fda44f5cd5535.setIcon(icon_129a713941db993bfa4873a99db3b09e);
+            
+    
+            var marker_36a3a0fd5a7cde28af945c2e33bc4857 = L.marker(
+                [42.8682574, -94.2874077],
+                {
+  "animalId": "22222145",
+}
+            ).addTo(marker_cluster_db34b98687957ecf780e55a607aca4fb);
+        
+    
+            var icon_bca08216980b4827eb380d902de3297b = L.AwesomeMarkers.icon(
+                {
+  "markerColor": "black",
+  "iconColor": "white",
+  "icon": "info-sign",
+  "prefix": "glyphicon",
+  "extraClasses": "fa-rotate-0",
+}
+            );
+        
+    
+            marker_36a3a0fd5a7cde28af945c2e33bc4857.bindTooltip(
+                `<div>
+                     Nellie
+                 </div>`,
+                {
+  "sticky": true,
+}
+            );
+        
+    
+                marker_36a3a0fd5a7cde28af945c2e33bc4857.setIcon(icon_bca08216980b4827eb380d902de3297b);
+            
+    
+            var marker_3bf7c5bc54a045aa6ab3bd0451aa1b7c = L.marker(
+                [43.0386475, -87.9090751],
+                {
+  "animalId": "22205987",
+}
+            ).addTo(marker_cluster_db34b98687957ecf780e55a607aca4fb);
+        
+    
+            var icon_6cc5a379ceee08a327bd5bc77f59dc02 = L.AwesomeMarkers.icon(
+                {
+  "markerColor": "black",
+  "iconColor": "white",
+  "icon": "info-sign",
+  "prefix": "glyphicon",
+  "extraClasses": "fa-rotate-0",
+}
+            );
+        
+    
+            marker_3bf7c5bc54a045aa6ab3bd0451aa1b7c.bindTooltip(
+                `<div>
+                     Onyx
+                 </div>`,
+                {
+  "sticky": true,
+}
+            );
+        
+    
+                marker_3bf7c5bc54a045aa6ab3bd0451aa1b7c.setIcon(icon_6cc5a379ceee08a327bd5bc77f59dc02);
+            
+    
+            var marker_e56e1b98b72f82488bfcbaf8dfe1493d = L.marker(
+                [43.0386475, -87.9090751],
+                {
+  "animalId": "21126202",
+}
+            ).addTo(marker_cluster_db34b98687957ecf780e55a607aca4fb);
+        
+    
+            var icon_62421f334e289a89a4cd7193dcc15451 = L.AwesomeMarkers.icon(
+                {
+  "markerColor": "black",
+  "iconColor": "white",
+  "icon": "info-sign",
+  "prefix": "glyphicon",
+  "extraClasses": "fa-rotate-0",
+}
+            );
+        
+    
+            marker_e56e1b98b72f82488bfcbaf8dfe1493d.bindTooltip(
+                `<div>
+                     Dragon
+                 </div>`,
+                {
+  "sticky": true,
+}
+            );
+        
+    
+                marker_e56e1b98b72f82488bfcbaf8dfe1493d.setIcon(icon_62421f334e289a89a4cd7193dcc15451);
+            
+    
+            marker_cluster_db34b98687957ecf780e55a607aca4fb.addTo(map_06e64452276951f13ba3f82926034780);
+        
+    
+            tile_layer_ce54a25c2e7c110a8ee328764274353c.addTo(map_06e64452276951f13ba3f82926034780);
+        
+    
+                marker_d02968538c3e65468ba9b481ea76c349.setIcon(icon_a9b8e4c346aa3a8da7ae9ccc97b73e5e);
+            
+    
+                marker_5712ff73a1109d090d8de65fa0a250a3.setIcon(icon_35ddb5e75ac15aa02ba42a1fd916f687);
+            
+    
+                marker_c01ed1335b93aed6e75c13b37a987bf9.setIcon(icon_faca136c446b04ef0e4c2c01a8c9d22d);
+            
+    
+                marker_a106d28872ff398330034190ab41ff65.setIcon(icon_eaed22bb876281461bd28905fa3996c9);
+            
+    
+                marker_9f78bf660602d39cac03319e979b6044.setIcon(icon_a5af63d23cbd000d926666c62b60bd1e);
+            
+    
+                marker_b4f8bede76d1037df290db1b99aea5cc.setIcon(icon_4b3c14bf694a0bb8264211d80fbf411e);
+            
+    
+                marker_35219b6145cfd028fc14f5a74f30cf9d.setIcon(icon_7f6af2fa0995d7c779aac01a68261d96);
+            
+    
+                marker_833301b7fec61a6441fbf585413a9017.setIcon(icon_ffa6acd5708e8cab1495b62fbb7aee72);
+            
+    
+                marker_7d7f62e8efb5853d6252669262ce2d72.setIcon(icon_41becf78bf6dea48630f5001b7970595);
+            
+    
+                marker_c6ba1d9b54f95cdc9e9fda44f5cd5535.setIcon(icon_129a713941db993bfa4873a99db3b09e);
+            
+    
+                marker_36a3a0fd5a7cde28af945c2e33bc4857.setIcon(icon_bca08216980b4827eb380d902de3297b);
+            
+    
+                marker_3bf7c5bc54a045aa6ab3bd0451aa1b7c.setIcon(icon_6cc5a379ceee08a327bd5bc77f59dc02);
+            
+    
+                marker_e56e1b98b72f82488bfcbaf8dfe1493d.setIcon(icon_62421f334e289a89a4cd7193dcc15451);
+            
+    
+            marker_cluster_db34b98687957ecf780e55a607aca4fb.addTo(map_06e64452276951f13ba3f82926034780);
+        
+</script>
+</html>
