@@ -1,12 +1,15 @@
 #!/usr/bin/env python3
 """
-DISCOVERY ONLY. Logs in to the RescueGroups v2 API, then prints the STRUCTURE
-of what comes back (field names only). It never prints animal data, names,
-addresses, passwords, or tokens.
+DISCOVERY ONLY (step 3). Logs in to the RescueGroups v2 API, runs a
+publicSearch for your organization's animals using the login token, and
+prints ONLY summaries: counts, status names, and field names.
+It never prints animal names, foster names, emails, phones, addresses,
+passwords, or tokens (this repo's logs may be public).
 """
-import json
 import os
 import sys
+from collections import Counter
+
 import requests
 
 URL = "https://api.rescuegroups.org/http/v2.json"
@@ -15,9 +18,18 @@ USERNAME = os.environ["RESCUEGROUPS_USERNAME"]
 PASSWORD = os.environ["RESCUEGROUPS_PASSWORD"]
 ACCOUNT = os.environ["RESCUEGROUPS_ACCOUNT"]
 
+FIELDS = [
+    "animalID", "animalName", "animalSpecies", "animalSex",
+    "animalStatus", "animalStatusID", "animalNeedsFoster",
+    "animalAvailableDate", "animalUpdatedDate",
+    "animalLocation", "animalLocationCitystate", "animalLocationState",
+    "locationName", "locationCity", "locationState", "locationPostalcode",
+    "fosterName",
+]
+
 
 def post(payload):
-    r = requests.post(URL, json=payload, timeout=60)
+    r = requests.post(URL, json=payload, timeout=120)
     print("HTTP status:", r.status_code)
     try:
         return r.json()
@@ -26,16 +38,6 @@ def post(payload):
         sys.exit(1)
 
 
-def key_tree(obj, depth=0, max_depth=3):
-    """Return only the key names (and value types), never the values."""
-    if isinstance(obj, dict) and depth < max_depth:
-        return {k: key_tree(v, depth + 1, max_depth) for k, v in obj.items()}
-    if isinstance(obj, list):
-        return "list"
-    return type(obj).__name__
-
-
-# Step 1: log in
 login = post({
     "username": USERNAME,
     "password": PASSWORD,
@@ -44,44 +46,59 @@ login = post({
 })
 print("Login status:", login.get("status"), "| message:", login.get("message"))
 data = login.get("data", login)
-token = data.get("token")
-token_hash = data.get("tokenHash")
+token, token_hash = data.get("token"), data.get("tokenHash")
 if not token:
-    print("No token came back, so login did not work. Stopping.")
+    print("Login did not work. Stopping.")
     sys.exit(1)
 print("Login worked.\n")
 
-auth = {"apikey": API_KEY, "token": token, "tokenHash": token_hash}
+res = post({
+    "apikey": API_KEY,
+    "token": token,
+    "tokenHash": token_hash,
+    "objectType": "animals",
+    "objectAction": "publicSearch",
+    "search": {
+        "resultStart": 0,
+        "resultLimit": 500,
+        "resultSort": "animalID",
+        "resultOrder": "asc",
+        "calcFoundRows": "Yes",
+        "filters": [
+            {"fieldName": "animalOrgID", "operation": "equals", "criteria": ACCOUNT}
+        ],
+        "fields": FIELDS,
+    },
+})
+print("Search status:", res.get("status"), "| message:", res.get("message") or res.get("messages"))
+if res.get("status") != "ok":
+    sys.exit(1)
 
-# Step 2: what does the 'define' action say? (structure only)
-define = post({**auth, "objectType": "animals", "objectAction": "define"})
-print("Define status:", define.get("status"), "| message:", define.get("message"))
-print("Define structure (key names only):")
-print(json.dumps(key_tree(define.get("data", {})), indent=1))
+print("Rows found (total):", res.get("foundRows"))
+rows = res.get("data", {})
+records = list(rows.values()) if isinstance(rows, dict) else list(rows)
+print("Records returned in this call:", len(records))
+if not records:
+    sys.exit(0)
 
-# Step 3: try a PRIVATE search for 1 animal and print only its field names
-variants = [
-    {"resultStart": 0, "resultLimit": 1, "resultSort": "animalID", "resultOrder": "asc"},
-    {"resultStart": 0, "resultLimit": 1, "resultSort": "animalID", "resultOrder": "asc",
-     "filters": [{"fieldName": "animalStatus", "operation": "notblank", "criteria": ""}]},
-]
-for i, search in enumerate(variants, 1):
-    print(f"\nPrivate search attempt {i}:")
-    res = post({**auth, "objectType": "animals", "objectAction": "search", "search": search})
-    print("Status:", res.get("status"), "| message:", res.get("message") or res.get("messages"))
-    if res.get("status") != "ok":
-        continue
-    print("Rows found:", res.get("foundRows"))
-    rows = res.get("data", {})
-    first = None
-    if isinstance(rows, dict) and rows:
-        first = next(iter(rows.values()))
-    elif isinstance(rows, list) and rows:
-        first = rows[0]
-    if isinstance(first, dict):
-        print(f"\n{len(first)} field names on a private animal record:")
-        for name in sorted(first.keys()):
-            print(name)
-    else:
-        print("No animal record came back to inspect.")
-    break
+
+def filled(rec, key):
+    v = rec.get(key)
+    return v not in (None, "", [], {})
+
+
+print("\nStatuses (count of animals):")
+for status, n in Counter(str(r.get("animalStatus")) for r in records).most_common():
+    print(f"  {status}: {n}")
+
+print("\nanimalNeedsFoster values (count):")
+for val, n in Counter(str(r.get("animalNeedsFoster")) for r in records).most_common():
+    print(f"  {val}: {n}")
+
+print("\nHow many records have each field filled in (counts only):")
+for f in FIELDS:
+    print(f"  {f}: {sum(1 for r in records if filled(r, f))} of {len(records)}")
+
+print("\nField names present on the first record:")
+for name in sorted(records[0].keys()):
+    print(" ", name)
