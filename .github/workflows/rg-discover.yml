@@ -1,0 +1,25 @@
+name: RescueGroups field discovery
+
+on:
+  workflow_dispatch: {}   # manual only: runs when you click "Run workflow"
+
+jobs:
+  discover:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+
+      - uses: actions/setup-python@v5
+        with:
+          python-version: "3.12"
+
+      - name: Install dependencies
+        run: pip install requests
+
+      - name: List available RescueGroups fields
+        env:
+          RESCUEGROUPS_API_KEY: ${{ secrets.RESCUEGROUPS_API_KEY }}
+          RESCUEGROUPS_USERNAME: ${{ secrets.RESCUEGROUPS_USERNAME }}
+          RESCUEGROUPS_PASSWORD: ${{ secrets.RESCUEGROUPS_PASSWORD }}
+          RESCUEGROUPS_ACCOUNT: ${{ secrets.RESCUEGROUPS_ACCOUNT }}
+        run: python rg_discover.py
