@@ -7,8 +7,11 @@ foster names, emails, phones, addresses, passwords, or tokens.
 """
 import os
 import sys
+import time
 
 import requests
+
+sys.stdout.reconfigure(line_buffering=True)
 
 URL = "https://api.rescuegroups.org/http/v2.json"
 API_KEY = os.environ["RESCUEGROUPS_API_KEY"]
@@ -17,12 +20,22 @@ PASSWORD = os.environ["RESCUEGROUPS_PASSWORD"]
 ACCOUNT = os.environ["RESCUEGROUPS_ACCOUNT"]
 
 
-def post(payload):
-    r = requests.post(URL, json=payload, timeout=120)
-    try:
-        return r.json()
-    except ValueError:
-        return {"status": "not-json", "message": f"HTTP {r.status_code}: {r.text[:120]}"}
+def post(payload, tries=4):
+    # Retry a few times: RescueGroups sometimes drops a connection briefly.
+    last_error = None
+    for attempt in range(1, tries + 1):
+        try:
+            r = requests.post(URL, json=payload, timeout=30)
+            try:
+                return r.json()
+            except ValueError:
+                return {"status": "not-json", "message": f"HTTP {r.status_code}: {r.text[:120]}"}
+        except requests.exceptions.RequestException as e:
+            last_error = type(e).__name__
+            print(f"  (connection problem, attempt {attempt} of {tries}: {last_error})")
+            time.sleep(5 * attempt)
+    print(f"Gave up after {tries} attempt(s):", last_error)
+    return {"status": "no-response", "message": last_error}
 
 
 def msg(res):
@@ -49,13 +62,9 @@ auth = {"apikey": API_KEY, "token": token, "tokenHash": token_hash}
 
 # Part A: which object types exist, and what actions does this login have?
 print("\nPart A: object types and the actions this login can use")
-types = [
-    "animals", "contacts", "fosters", "fosterHomes", "persons", "people",
-    "reports", "exports", "views", "orgs", "adopters", "foster",
-    "animalFosters", "animalContacts", "users", "tasks", "journals",
-]
+types = ["animals", "contacts", "fosters", "persons", "reports", "exports", "orgs", "users"]
 for t in types:
-    res = post({**auth, "objectType": t, "objectAction": "define"})
+    res = post({**auth, "objectType": t, "objectAction": "define"}, tries=1)
     d = res.get("data")
     if res.get("status") == "ok" and isinstance(d, dict):
         print(f"  {t}: actions = {sorted(d.keys())}")
