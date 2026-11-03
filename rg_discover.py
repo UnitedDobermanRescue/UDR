@@ -1,14 +1,12 @@
 #!/usr/bin/env python3
 """
-DISCOVERY ONLY (step 4). Logs in to the RescueGroups v2 API, fetches ALL of
-your organization's animals (in pages), and prints ONLY summaries: counts,
-status names, and field names.
-It never prints animal names, foster names, emails, phones, addresses,
-passwords, or tokens (this repo's logs may be public).
+DISCOVERY ONLY (step 5). Logs in to the RescueGroups v2 API and prints ONLY
+summaries: which object types/actions exist for this login, and how many
+DISTINCT values the location fields have. It never prints animal names,
+foster names, emails, phones, addresses, passwords, or tokens.
 """
 import os
 import sys
-from collections import Counter, defaultdict
 
 import requests
 
@@ -18,28 +16,21 @@ USERNAME = os.environ["RESCUEGROUPS_USERNAME"]
 PASSWORD = os.environ["RESCUEGROUPS_PASSWORD"]
 ACCOUNT = os.environ["RESCUEGROUPS_ACCOUNT"]
 
-PAGE = 250
-FIELDS = [
-    "animalID", "animalName", "animalSpecies", "animalSex",
-    "animalStatus", "animalStatusID", "animalNeedsFoster",
-    "animalAvailableDate", "animalUpdatedDate",
-    "animalLocation", "animalLocationCitystate", "animalLocationState",
-    "locationName", "locationCity", "locationState", "locationPostalcode",
-    "fosterName",
-]
-CHECK = [
-    "animalNeedsFoster", "animalAvailableDate", "animalLocationCitystate",
-    "locationCity", "locationState", "locationPostalcode", "fosterName",
-]
-
 
 def post(payload):
     r = requests.post(URL, json=payload, timeout=120)
     try:
         return r.json()
     except ValueError:
-        print("Response was not JSON. HTTP", r.status_code, r.text[:200])
-        sys.exit(1)
+        return {"status": "not-json", "message": f"HTTP {r.status_code}: {r.text[:120]}"}
+
+
+def msg(res):
+    m = res.get("message") or res.get("messages")
+    if isinstance(m, dict):
+        texts = [g.get("messageText") for g in m.get("generalMessages", [])]
+        return "; ".join(t for t in texts if t) or "(none)"
+    return m or "(none)"
 
 
 login = post({
@@ -54,59 +45,45 @@ token, token_hash = data.get("token"), data.get("tokenHash")
 if not token:
     print("Login did not work. Stopping.")
     sys.exit(1)
+auth = {"apikey": API_KEY, "token": token, "tokenHash": token_hash}
 
-records, start, total = [], 0, None
+# Part A: which object types exist, and what actions does this login have?
+print("\nPart A: object types and the actions this login can use")
+types = [
+    "animals", "contacts", "fosters", "fosterHomes", "persons", "people",
+    "reports", "exports", "views", "orgs", "adopters", "foster",
+    "animalFosters", "animalContacts", "users", "tasks", "journals",
+]
+for t in types:
+    res = post({**auth, "objectType": t, "objectAction": "define"})
+    d = res.get("data")
+    if res.get("status") == "ok" and isinstance(d, dict):
+        print(f"  {t}: actions = {sorted(d.keys())}")
+    else:
+        print(f"  {t}: status={res.get('status')} | {msg(res)}")
+
+# Part B: do the location fields hold one value (the rescue's address) or many?
+print("\nPart B: distinct value counts for non-adopted animals (counts only)")
+records, start = [], 0
 while True:
-    res = post({
-        "apikey": API_KEY,
-        "token": token,
-        "tokenHash": token_hash,
-        "objectType": "animals",
-        "objectAction": "publicSearch",
-        "search": {
-            "resultStart": start,
-            "resultLimit": PAGE,
-            "resultSort": "animalID",
-            "resultOrder": "asc",
-            "calcFoundRows": "Yes",
-            "filters": [
-                {"fieldName": "animalOrgID", "operation": "equals", "criteria": ACCOUNT}
-            ],
-            "fields": FIELDS,
-        },
-    })
+    res = post({**auth, "objectType": "animals", "objectAction": "publicSearch",
+                "search": {"resultStart": start, "resultLimit": 250,
+                           "resultSort": "animalID", "resultOrder": "asc",
+                           "calcFoundRows": "Yes",
+                           "filters": [{"fieldName": "animalOrgID", "operation": "equals", "criteria": ACCOUNT}],
+                           "fields": ["animalID", "animalStatus", "animalLocation",
+                                      "animalLocationCitystate", "animalLocationState"]}})
     if res.get("status") != "ok":
-        print("Search error:", res.get("message") or res.get("messages"))
+        print("Search error:", msg(res))
         sys.exit(1)
-    total = res.get("foundRows", total)
     rows = res.get("data", {})
     page = list(rows.values()) if isinstance(rows, dict) else list(rows)
     records.extend(page)
-    start += PAGE
-    if not page or len(records) >= int(total or 0):
+    start += 250
+    if not page or len(records) >= int(res.get("foundRows") or 0):
         break
 
-print(f"\nTotal animals fetched: {len(records)} (RescueGroups says {total})")
-
-
-def filled(rec, key):
-    return rec.get(key) not in (None, "", [], {})
-
-
-print("\nStatuses (count of animals):")
-for status, n in Counter(str(r.get("animalStatus")) for r in records).most_common():
-    print(f"  {status}: {n}")
-
-groups = defaultdict(list)
-for r in records:
-    groups[str(r.get("animalStatus"))].append(r)
-
-print("\nFor each status EXCEPT Adopted: how many records have each field filled in")
-for status, recs in sorted(groups.items()):
-    if status == "Adopted":
-        continue
-    print(f"\n[{status}] {len(recs)} animals")
-    for f in CHECK:
-        print(f"  {f}: {sum(1 for r in recs if filled(r, f))} of {len(recs)}")
-    needs = Counter(str(r.get("animalNeedsFoster")) for r in recs)
-    print("  animalNeedsFoster values:", dict(needs))
+active = [r for r in records if r.get("animalStatus") != "Adopted"]
+print("Non-adopted animals:", len(active))
+for f in ["animalLocation", "animalLocationCitystate", "animalLocationState"]:
+    print(f"  {f}: {len({str(r.get(f)) for r in active})} distinct value(s)")
