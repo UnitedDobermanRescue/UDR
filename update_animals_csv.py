@@ -60,19 +60,19 @@ def post(payload):
             print(f"  (connection problem, attempt {attempt} of 4: {type(e).__name__})")
             time.sleep(5 * attempt)
     sys.exit(f"Gave up after 4 attempts: {type(last).__name__}")
-    
+
 def main():
     key, user, pw = (os.environ.get(k) for k in ("RG_API_KEY", "RG_USER", "RG_PASS"))
     if not (key and user and pw):
         sys.exit("Missing RG_API_KEY / RG_USER / RG_PASS")
-    creds = {"username": user, "password": pw}
+    login_req = {"apikey": key, "action": "login",
+                 "username": user, "password": pw}
     if os.environ.get("RG_ACCOUNT"):
-        creds["accountNumber"] = os.environ["RG_ACCOUNT"]
+        login_req["accountNumber"] = os.environ["RG_ACCOUNT"]
 
-    login = post({"apikey": key, "objectType": "login",
-                  "objectAction": "login", "values": [creds]})
+    login = post(login_req)
     if login.get("status") != "ok":
-        sys.exit(f"Login failed: {login.get('messages')}")
+        sys.exit(f"Login failed: {login.get('generalMessages')}")
     token, token_hash = login["data"]["token"], login["data"]["tokenHash"]
 
     animals, start, limit = [], 0, 100
@@ -83,7 +83,7 @@ def main():
                                "resultSort": "animalID", "resultOrder": "asc",
                                "fields": API_FIELDS}})
         if res.get("status") != "ok":
-            sys.exit(f"Search failed: {res.get('messages')}")
+            sys.exit(f"Search failed: {res.get('generalMessages')}")
         animals += [a for a in res.get("data", {}).values()
                     if a.get("animalStatus") in STATUSES]
         start += limit
