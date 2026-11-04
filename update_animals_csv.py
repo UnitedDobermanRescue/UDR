@@ -5,7 +5,7 @@ in the exact column format the UDR foster map already expects.
 Env vars (GitHub Actions secrets): RG_API_KEY, RG_USER, RG_PASS, optional RG_ACCOUNT.
 Test locally:  RG_API_KEY=... RG_USER=... RG_PASS=... python3 update_animals_csv.py
 """
-import csv, json, os, sys, urllib.request
+import csv, json, os, sys, time, urllib.request
 
 URL = "https://api.rescuegroups.org/http/v2.json"
 OUTPUT_PATH = "animals.csv"
@@ -45,11 +45,22 @@ COLUMNS = [
 API_FIELDS = sorted({f for _, f in COLUMNS if f})
 
 def post(payload):
-    req = urllib.request.Request(URL, json.dumps(payload).encode(),
-                                 {"Content-Type": "application/json"})
-    with urllib.request.urlopen(req, timeout=60) as r:
-        return json.load(r)
-
+    data = json.dumps(payload).encode()
+    headers = {"Content-Type": "application/json",
+               "Accept": "application/json",
+               "User-Agent": "UDR-foster-map/1.0 (github.com/UnitedDobermanRescue/UDR)"}
+    last = None
+    for attempt in range(1, 5):
+        try:
+            req = urllib.request.Request(URL, data, headers)
+            with urllib.request.urlopen(req, timeout=60) as r:
+                return json.load(r)
+        except Exception as e:           # dropped connection, timeout, etc.
+            last = e
+            print(f"  (connection problem, attempt {attempt} of 4: {type(e).__name__})")
+            time.sleep(5 * attempt)
+    sys.exit(f"Gave up after 4 attempts: {type(last).__name__}")
+    
 def main():
     key, user, pw = (os.environ.get(k) for k in ("RG_API_KEY", "RG_USER", "RG_PASS"))
     if not (key and user and pw):
