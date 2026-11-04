@@ -20,10 +20,10 @@ jobs:
 
       - name: Fetch latest animals and update CSV
         env:
-          RG_API_KEY: ${{ secrets.RG_API_KEY }}
-          RG_USER: ${{ secrets.RG_USER }}
-          RG_PASS: ${{ secrets.RG_PASS }}
-          RG_ACCOUNT: ${{ secrets.RG_ACCOUNT }}
+          RG_API_KEY: ${{ secrets.RESCUEGROUPS_API_KEY }}
+          RG_USER: ${{ secrets.RESCUEGROUPS_USERNAME }}
+          RG_PASS: ${{ secrets.RESCUEGROUPS_PASSWORD }}
+          RG_ACCOUNT: ${{ secrets.RESCUEGROUPS_ACCOUNT }}
         run: python update_animals_csv.py
 
       - name: Commit and push if changed
