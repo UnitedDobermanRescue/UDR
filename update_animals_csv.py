@@ -2,12 +2,24 @@
 """Pull foster-dog data from RescueGroups API v2 and write animals.csv
 in the exact column format the UDR foster map already expects.
 
-Env vars (GitHub Actions secrets): RG_API_KEY, RG_USER, RG_PASS, optional RG_ACCOUNT.
-Test locally:  RG_API_KEY=... RG_USER=... RG_PASS=... python3 update_animals_csv.py
+Secrets (GitHub Actions): RESCUEGROUPS_API_KEY, RESCUEGROUPS_USERNAME,
+RESCUEGROUPS_PASSWORD, RESCUEGROUPS_ACCOUNT.
 """
-import csv, json, os, sys, time, urllib.request
+import csv
+import os
+import sys
+import time
+
+import requests
+
+sys.stdout.reconfigure(line_buffering=True)
 
 URL = "https://api.rescuegroups.org/http/v2.json"
+API_KEY = os.environ["RESCUEGROUPS_API_KEY"]
+USERNAME = os.environ["RESCUEGROUPS_USERNAME"]
+PASSWORD = os.environ["RESCUEGROUPS_PASSWORD"]
+ACCOUNT = os.environ["RESCUEGROUPS_ACCOUNT"]
+
 OUTPUT_PATH = "animals.csv"
 STATUSES = {"Available", "Intake"}      # statuses your current report shows
 
@@ -44,52 +56,65 @@ COLUMNS = [
 ]
 API_FIELDS = sorted({f for _, f in COLUMNS if f})
 
-def post(payload):
-    data = json.dumps(payload).encode()
-    headers = {"Content-Type": "application/json",
-               "Accept": "application/json",
-               "User-Agent": "UDR-foster-map/1.0 (github.com/UnitedDobermanRescue/UDR)"}
-    last = None
-    for attempt in range(1, 5):
+
+def post(payload, tries=4):
+    # Retry a few times: RescueGroups sometimes drops a connection briefly.
+    last_error = None
+    for attempt in range(1, tries + 1):
         try:
-            req = urllib.request.Request(URL, data, headers)
-            with urllib.request.urlopen(req, timeout=60) as r:
-                return json.load(r)
-        except Exception as e:           # dropped connection, timeout, etc.
-            last = e
-            print(f"  (connection problem, attempt {attempt} of 4: {type(e).__name__})")
+            r = requests.post(URL, json=payload, timeout=30)
+            try:
+                return r.json()
+            except ValueError:
+                return {"status": "not-json",
+                        "message": f"HTTP {r.status_code}: {r.text[:120]}"}
+        except requests.exceptions.RequestException as e:
+            last_error = type(e).__name__
+            print(f"  (connection problem, attempt {attempt} of {tries}: {last_error})")
             time.sleep(5 * attempt)
-    sys.exit(f"Gave up after 4 attempts: {type(last).__name__}")
+    print(f"Gave up after {tries} attempt(s):", last_error)
+    return {"status": "no-response", "message": last_error}
+
+
+def msg(res):
+    m = res.get("message") or res.get("messages")
+    if isinstance(m, dict):
+        texts = [g.get("messageText") for g in m.get("generalMessages", [])]
+        return "; ".join(t for t in texts if t) or "(none)"
+    return m or "(none)"
+
 
 def main():
-    key, user, pw = (os.environ.get(k) for k in ("RG_API_KEY", "RG_USER", "RG_PASS"))
-    if not (key and user and pw):
-        sys.exit("Missing RG_API_KEY / RG_USER / RG_PASS")
-    login_req = {"apikey": key, "action": "login",
-                 "username": user, "password": pw}
-    if os.environ.get("RG_ACCOUNT"):
-        login_req["accountNumber"] = os.environ["RG_ACCOUNT"]
-
-    login = post(login_req)
-    if login.get("status") != "ok":
-        sys.exit(f"Login failed: {login.get('generalMessages')}")
-    token, token_hash = login["data"]["token"], login["data"]["tokenHash"]
+    login = post({
+        "username": USERNAME,
+        "password": PASSWORD,
+        "accountNumber": int(ACCOUNT) if ACCOUNT.isdigit() else ACCOUNT,
+        "action": "login",
+    })
+    print("Login status:", login.get("status"), "| message:", msg(login))
+    data = login.get("data", login)
+    token, token_hash = data.get("token"), data.get("tokenHash")
+    if not token:
+        sys.exit("Login did not work. Stopping.")
+    auth = {"apikey": API_KEY, "token": token, "tokenHash": token_hash}
 
     animals, start, limit = [], 0, 100
     while True:
-        res = post({"apikey": key, "token": token, "tokenHash": token_hash,
-                    "objectType": "animals", "objectAction": "search",
+        res = post({**auth, "objectType": "animals", "objectAction": "search",
                     "search": {"resultStart": start, "resultLimit": limit,
                                "resultSort": "animalID", "resultOrder": "asc",
+                               "calcFoundRows": "Yes",
                                "fields": API_FIELDS}})
         if res.get("status") != "ok":
-            sys.exit(f"Search failed: {res.get('generalMessages')}")
-        animals += [a for a in res.get("data", {}).values()
-                    if a.get("animalStatus") in STATUSES]
+            sys.exit(f"Search failed: {res.get('status')} | {msg(res)}")
+        rows = res.get("data", {})
+        page = list(rows.values()) if isinstance(rows, dict) else list(rows)
+        animals += [a for a in page if a.get("animalStatus") in STATUSES]
         start += limit
-        if start >= int(res.get("foundRows", 0)):
+        if not page or start >= int(res.get("foundRows") or 0):
             break
 
+    print("Animals kept (Available/Intake):", len(animals))
     if not animals:   # never replace a good file with an empty one
         sys.exit("No animals returned; leaving animals.csv untouched")
     animals.sort(key=lambda a: int(a.get("animalID") or 0))
@@ -98,8 +123,9 @@ def main():
         w = csv.writer(f, quoting=csv.QUOTE_ALL)
         w.writerow([c for c, _ in COLUMNS])
         for a in animals:
-            w.writerow(["" if f is None else a.get(f, "") for _, f in COLUMNS])
+            w.writerow(["" if k is None else a.get(k, "") for _, k in COLUMNS])
     print(f"Wrote {len(animals)} animals to {OUTPUT_PATH}")
+
 
 if __name__ == "__main__":
     main()
