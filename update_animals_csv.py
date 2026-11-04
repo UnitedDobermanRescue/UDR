@@ -1,68 +1,94 @@
 #!/usr/bin/env python3
+"""Pull foster-dog data from RescueGroups API v2 and write animals.csv
+in the exact column format the UDR foster map already expects.
+
+Env vars (GitHub Actions secrets): RG_API_KEY, RG_USER, RG_PASS, optional RG_ACCOUNT.
+Test locally:  RG_API_KEY=... RG_USER=... RG_PASS=... python3 update_animals_csv.py
 """
-Pulls current foster animal data from the RescueGroups.org API and writes it
-to animals.csv in the same column format the UDR foster map already expects.
+import csv, json, os, sys, urllib.request
 
-Run manually to test:
-    RESCUEGROUPS_API_KEY=xxxx python3 update_animals_csv.py
+URL = "https://api.rescuegroups.org/http/v2.json"
+OUTPUT_PATH = "animals.csv"
+STATUSES = {"Available", "Intake"}      # statuses your current report shows
 
-In CI (GitHub Actions), the API key is read from a repo secret.
-
-TODO once the test API response is available:
-  1. Confirm the exact endpoint and org ID.
-  2. Confirm which filters reproduce your current report (view 844261).
-  3. Map the API's response field names to the CSV columns below
-     (to_row() is where that translation happens).
-"""
-
-import csv
-import os
-import sys
-import requests
-
-API_KEY = os.environ["RESCUEGROUPS_API_KEY"]
-API_URL = "https://api.rescuegroups.org/v5/public/animals/search/available"  # TODO: confirm
-OUTPUT_PATH = "animals.csv"  # TODO: confirm actual path/filename in the repo
-
-# Columns must match the map's expected CSV header exactly, in this order.
-CSV_COLUMNS = [
-    "Name", "Status", "Species", "Sex", "Days in Foster", "City", "Name",
-    "State", "Zip/Postal Code", "Animal ID", "Description", "Energy Level",
-    "General Age", "Good with farm animals", "Needs companion animal",
-    "Needs ongoing medical care", "Not good with female dogs",
-    "Not good with large dogs", "Not good with male dogs",
-    "Not good with small dogs", "Notes", "OK with Cats", "OK with Dogs",
-    "OK with Kids", "Older/ considerate kids only", "Primary Breed",
-    "Protective/ territorial", "Reaction to New People",
-    "Requires a Home with Fence", "Requires a Yard", "Secondary Breed",
-    "Special Needs (description)", "Summary", "Video URL 1",
+# Same header, same order as your existing animals.csv (note the two "Name" columns).
+# Each entry: (CSV column, API field or None).  None = left blank on purpose.
+COLUMNS = [
+    ("Name", "animalName"), ("Status", "animalStatus"), ("Species", "animalSpecies"),
+    ("Sex", "animalSex"), ("Days in Foster", "animalDaysInFoster"),
+    ("City", "fosterCity"),
+    ("Name", None),                      # foster's name: blanked (file is public)
+    ("State", "fosterState"), ("Zip/Postal Code", "fosterPostalcode"),
+    ("Animal ID", "animalID"), ("Description", "animalDescriptionPlain"),
+    ("Energy Level", "animalEnergyLevel"), ("General Age", "animalGeneralAge"),
+    ("Good with farm animals", "animalOKWithFarmAnimals"),
+    ("Needs companion animal", "animalNeedsCompanionAnimal"),
+    ("Needs ongoing medical care", "animalOngoingMedical"),
+    ("Not good with female dogs", "animalNoFemaleDogs"),
+    ("Not good with large dogs", "animalNoLargeDogs"),
+    ("Not good with male dogs", "animalNoMaleDogs"),
+    ("Not good with small dogs", "animalNoSmallDogs"),
+    ("Notes", None),                     # private notes: blanked (file is public)
+    ("OK with Cats", "animalOKWithCats"), ("OK with Dogs", "animalOKWithDogs"),
+    ("OK with Kids", "animalOKWithKids"),
+    ("Older/ considerate kids only", "animalOlderKidsOnly"),
+    ("Primary Breed", "animalPrimaryBreed"),
+    ("Protective/ territorial", "animalProtective"),
+    ("Reaction to New People", "animalNewPeople"),
+    ("Requires a Home with Fence", "animalFence"),
+    ("Requires a Yard", "animalYardRequired"),
+    ("Secondary Breed", "animalSecondaryBreed"),
+    ("Special Needs (description)", "animalSpecialneedsDescription"),
+    ("Summary", "animalSummary"),
+    ("Video URL 1", None),               # not available in v2 'search'
 ]
+API_FIELDS = sorted({f for _, f in COLUMNS if f})
 
-
-def fetch_animals():
-    """Call the RescueGroups API and return the parsed JSON response."""
-    headers = {"Authorization": API_KEY, "Content-Type": "application/vnd.api+json"}
-    resp = requests.get(API_URL, headers=headers, params={"include": "locations"}, timeout=30)
-    resp.raise_for_status()
-    return resp.json()
-
-
-def to_row(animal):
-    """Map one API animal record to a CSV row matching CSV_COLUMNS. TODO fill in."""
-    raise NotImplementedError("Map API fields to CSV_COLUMNS once response shape is known")
-
+def post(payload):
+    req = urllib.request.Request(URL, json.dumps(payload).encode(),
+                                 {"Content-Type": "application/json"})
+    with urllib.request.urlopen(req, timeout=60) as r:
+        return json.load(r)
 
 def main():
-    data = fetch_animals()
-    rows = [to_row(a) for a in data.get("data", [])]
+    key, user, pw = (os.environ.get(k) for k in ("RG_API_KEY", "RG_USER", "RG_PASS"))
+    if not (key and user and pw):
+        sys.exit("Missing RG_API_KEY / RG_USER / RG_PASS")
+    creds = {"username": user, "password": pw}
+    if os.environ.get("RG_ACCOUNT"):
+        creds["accountNumber"] = os.environ["RG_ACCOUNT"]
+
+    login = post({"apikey": key, "objectType": "login",
+                  "objectAction": "login", "values": [creds]})
+    if login.get("status") != "ok":
+        sys.exit(f"Login failed: {login.get('messages')}")
+    token, token_hash = login["data"]["token"], login["data"]["tokenHash"]
+
+    animals, start, limit = [], 0, 100
+    while True:
+        res = post({"apikey": key, "token": token, "tokenHash": token_hash,
+                    "objectType": "animals", "objectAction": "search",
+                    "search": {"resultStart": start, "resultLimit": limit,
+                               "resultSort": "animalID", "resultOrder": "asc",
+                               "fields": API_FIELDS}})
+        if res.get("status") != "ok":
+            sys.exit(f"Search failed: {res.get('messages')}")
+        animals += [a for a in res.get("data", {}).values()
+                    if a.get("animalStatus") in STATUSES]
+        start += limit
+        if start >= int(res.get("foundRows", 0)):
+            break
+
+    if not animals:   # never replace a good file with an empty one
+        sys.exit("No animals returned; leaving animals.csv untouched")
+    animals.sort(key=lambda a: int(a.get("animalID") or 0))
 
     with open(OUTPUT_PATH, "w", newline="", encoding="utf-8") as f:
-        writer = csv.writer(f, quoting=csv.QUOTE_ALL)
-        writer.writerow(CSV_COLUMNS)
-        writer.writerows(rows)
-
-    print(f"Wrote {len(rows)} animals to {OUTPUT_PATH}")
-
+        w = csv.writer(f, quoting=csv.QUOTE_ALL)
+        w.writerow([c for c, _ in COLUMNS])
+        for a in animals:
+            w.writerow(["" if f is None else a.get(f, "") for _, f in COLUMNS])
+    print(f"Wrote {len(animals)} animals to {OUTPUT_PATH}")
 
 if __name__ == "__main__":
-    sys.exit(main())
+    main()
