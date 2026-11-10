@@ -13,7 +13,7 @@ import folium
 from folium.plugins import MarkerCluster
 
 CSV_PATH = "animals.csv"
-OUT_PATH = "foster_map_final.html"
+OUT_PATH = "docs/foster_map_final.html"
 CACHE_PATH = "geocode_cache.json"
 
 df = pd.read_csv(CSV_PATH)
