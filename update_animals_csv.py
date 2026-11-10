@@ -53,8 +53,24 @@ COLUMNS = [
     ("Special Needs (description)", "animalSpecialneedsDescription"),
     ("Summary", "animalSummary"),
     ("Video URL 1", None),               # not available in v2 'search'
+    ("Picture 1", "__pic0"), ("Picture 2", "__pic1"),
+    ("Picture 3", "__pic2"), ("Picture 4", "__pic3"),
 ]
-API_FIELDS = sorted({f for _, f in COLUMNS if f})
+API_FIELDS = sorted({f for _, f in COLUMNS if f and not f.startswith("__")})
+
+
+def picture_urls(animal):
+    """Up to 4 picture URLs from the animalPictures field (empty list if absent)."""
+    urls = []
+    for p in animal.get("animalPictures") or []:
+        if isinstance(p, dict):
+            u = (p.get("urlSecureFullsize") or p.get("urlInsecureFullsize")
+                 or p.get("urlSecureThumbnail") or "")
+        else:
+            u = str(p)
+        if u:
+            urls.append(u)
+    return urls[:4]
 
 
 def post(payload, tries=4):
@@ -96,17 +112,21 @@ def main():
     token, token_hash = data.get("token"), data.get("tokenHash")
     if not token:
         sys.exit("Login did not work. Stopping.")
-    auth = {"token": token, "tokenHash": token_hash}
+    auth = {"apikey": API_KEY, "token": token, "tokenHash": token_hash}
 
-
-    
     animals, start, limit = [], 0, 100
+    want_pictures = True
     while True:
+        fields = API_FIELDS + (["animalPictures"] if want_pictures else [])
         res = post({**auth, "objectType": "animals", "objectAction": "search",
                     "search": {"resultStart": start, "resultLimit": limit,
                                "resultSort": "animalID", "resultOrder": "asc",
                                "calcFoundRows": "Yes",
-                               "fields": API_FIELDS}})
+                               "fields": fields}})
+        if res.get("status") != "ok" and want_pictures:
+            print("Search with pictures failed (" + msg(res) + "); retrying without pictures")
+            want_pictures = False
+            continue
         if res.get("status") != "ok":
             sys.exit(f"Search failed: {res.get('status')} | {msg(res)}")
         rows = res.get("data", {})
@@ -125,7 +145,17 @@ def main():
         w = csv.writer(f, quoting=csv.QUOTE_ALL)
         w.writerow([c for c, _ in COLUMNS])
         for a in animals:
-            w.writerow(["" if k is None else a.get(k, "") for _, k in COLUMNS])
+            pics = picture_urls(a)
+            row = []
+            for _, k in COLUMNS:
+                if k is None:
+                    row.append("")
+                elif k.startswith("__pic"):
+                    i = int(k[5:])
+                    row.append(pics[i] if i < len(pics) else "")
+                else:
+                    row.append(a.get(k, ""))
+            w.writerow(row)
     print(f"Wrote {len(animals)} animals to {OUTPUT_PATH}")
 
 
