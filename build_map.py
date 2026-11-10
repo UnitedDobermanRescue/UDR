@@ -520,8 +520,13 @@ for i, (idx, row) in enumerate(df_fostered.iterrows()):
                     f"<b>City:</b> {row['City']}<br><b>State:</b> {row['State']}<br>"
                     f"<b>Days in Foster:</b> {row['Days in Foster']}<br><br><b>Description:</b><br>{row['Description']}")
 
-    # Photos removed per user request
     photos_html = ""
+    for p in ["Picture 1", "Picture 2", "Picture 3", "Picture 4"]:
+        v = row.get(p)
+        if pd.notna(v) and str(v).strip() != "":
+            u = str(v)
+            u = base_url + u if u.startswith('/') else u
+            photos_html += f"<img src='{u}' style='width:100%; margin-bottom:10px; border-radius:5px;' />"
 
     # Updated Link Labels and URLs per request
     links_html = (f"<a href='https://www.uniteddobermanrescue.org/animals/detail?AnimalID={animal_id}' target='_blank'>Public Website - Full Profile</a><br><br>"
