@@ -1,4 +1,4 @@
-name: Update foster animals CSV
+name: Update foster animals CSV and map
 
 on:
   schedule:
@@ -9,7 +9,7 @@ permissions:
   contents: write
 
 jobs:
-  update-csv:
+  update:
     runs-on: ubuntu-latest
     steps:
       - uses: actions/checkout@v4
@@ -19,9 +19,9 @@ jobs:
           python-version: "3.12"
 
       - name: Install dependencies
-        run: pip install requests
+        run: pip install requests pandas folium geopy
 
-      - name: Fetch latest animals and update CSV
+      - name: Fetch latest animals from RescueGroups
         env:
           RESCUEGROUPS_API_KEY: ${{ secrets.RESCUEGROUPS_API_KEY }}
           RESCUEGROUPS_USERNAME: ${{ secrets.RESCUEGROUPS_USERNAME }}
@@ -29,10 +29,23 @@ jobs:
           RESCUEGROUPS_ACCOUNT: ${{ secrets.RESCUEGROUPS_ACCOUNT }}
         run: python update_animals_csv.py
 
+      - name: Did the data change?
+        id: changed
+        run: |
+          if git diff --quiet animals.csv; then
+            echo "changed=false" >> "$GITHUB_OUTPUT"
+          else
+            echo "changed=true" >> "$GITHUB_OUTPUT"
+          fi
+
+      - name: Rebuild the map
+        if: steps.changed.outputs.changed == 'true' || github.event_name == 'workflow_dispatch'
+        run: python build_map.py
+
       - name: Commit and push if changed
         run: |
           git config user.name "github-actions[bot]"
           git config user.email "github-actions[bot]@users.noreply.github.com"
-          git add animals.csv
-          git diff --quiet --cached || git commit -m "Auto-update foster animals data"
+          git add animals.csv geocode_cache.json docs/foster_map_final.html
+          git diff --quiet --cached || git commit -m "Auto-update foster animals data and map"
           git push
