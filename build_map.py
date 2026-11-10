@@ -69,6 +69,20 @@ base_url = "https://www.uniteddobermanrescue.org"
 rescue_groups_url = "https://rescuegroups.org/manage/animals#datatable74={%22limit%22:25,%22page%22:1,%22start%22:0,%22sortbyFieldID%22:1499,%22sortorder%22:%22asc%22,%22viewID%22:%22112%22,%22viewType%22:%22Built-in%22,%22togglethumbnails%22:%22Off%22,%22searchEnabled%22:false}&"
 intakes_url = "https://rescuegroups.org/manage/animals_intakes#datatable387={%22limit%22:%2225%22,%22page%22:1,%22start%22:0,%22sortbyFieldID%22:%22%22,%22sortorder%22:%22asc%22,%22viewID%22:%22211%22,%22viewType%22:%22Built-in%22,%22searchEnabled%22:false}&"
 
+def build_links(animal_id, profile_label):
+    """HTML for the sidebar's Links tab."""
+    return (
+        f"<a href='https://www.uniteddobermanrescue.org/animals/detail?AnimalID={animal_id}' target='_blank'><b>{profile_label}</b></a><br><br>"
+        "<a href='https://www.facebook.com/UnitedDobermanRescue' target='_blank'>Facebook - United Doberman Rescue</a><br><br>"
+        "<a href='https://www.instagram.com/uniteddobermanrescue' target='_blank'>Instagram - uniteddobermanrescue</a><br><br>"
+        "<a href='https://www.youtube.com/@mooseonaloose1' target='_blank'>YouTube - United Doberman Rescue and CC of MN</a>"
+        "<div style='margin-top:60px;'>"
+        f"<a href='{rescue_groups_url}' target='_blank' style='color:#999;'>RescueGroups - Available Dogs Report</a><br><br>"
+        f"<a href='{intakes_url}' target='_blank' style='color:#999;'>RescueGroups - Intake Report</a>"
+        "</div>"
+    )
+
+
 
 search_html = """
 <style>
@@ -397,11 +411,7 @@ for idx, row in df_needs_foster.iterrows():
         if pd.notna(row.get(p)) and str(row[p]).strip() != "":
             full_img_url = base_url + str(row[p]) if str(row[p]).startswith('/') else str(row[p])
             p_html += f"<img src='{full_img_url}' style='width:100%; margin-bottom:10px; border-radius:5px;' />"
-    l_html = (
-        f"<a href='https://www.uniteddobermanrescue.org/animals/detail?AnimalID={row.get('Animal ID', '')}' target='_blank'>Foster Dog's Full Profile</a><br><br>"
-        f"<a href='{rescue_groups_url}' target='_blank'>Rescue Groups - Available Dogs List</a><br><br>"
-        f"<a href='{intakes_url}' target='_blank'>Rescue Groups - Intake</a>"
-    )
+    l_html = build_links(row.get('Animal ID', ''), "Foster Dog's Full Profile")
     needs_foster_data.append({"details": d_html, "photos": p_html, "videos": "", "links": l_html})
 
 
@@ -528,10 +538,7 @@ for i, (idx, row) in enumerate(df_fostered.iterrows()):
             u = base_url + u if u.startswith('/') else u
             photos_html += f"<img src='{u}' style='width:100%; margin-bottom:10px; border-radius:5px;' />"
 
-    # Updated Link Labels and URLs per request
-    links_html = (f"<a href='https://www.uniteddobermanrescue.org/animals/detail?AnimalID={animal_id}' target='_blank'>Public Website - Full Profile</a><br><br>"
-                  f"<a href='https://rescuegroups.org/manage/animals#datatable74={{%22limit%22:25,%22page%22:1,%22start%22:0,%22sortbyFieldID%22:1499,%22sortorder%22:%22asc%22,%22viewID%22:%22112%22:%22viewType%22:%22Built-in%22,%22togglethumbnails%22:%22Off%22,%22searchEnabled%22:false}}&' target='_blank'>RescueGroups - Available Dogs Report</a><br><br>"
-                  f"<a href='https://rescuegroups.org/manage/animals_intakes#datatable387={{%22limit%22:%2225%22:%22page%22:1,%22start%22:0,%22sortbyFieldID%22:%22%22,%22sortorder%22:%22asc%22,%22viewID%22:%22211%22:%22viewType%22:%22Built-in%22:%22searchEnabled%22:false}}&' target='_blank'>RescueGroups - Intake Report</a>")
+    links_html = build_links(animal_id, "Public Website - Full Profile")
 
     final_fostered_list.append({
         "id": animal_id,
