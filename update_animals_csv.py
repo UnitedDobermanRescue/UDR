@@ -112,7 +112,7 @@ def main():
     token, token_hash = data.get("token"), data.get("tokenHash")
     if not token:
         sys.exit("Login did not work. Stopping.")
-    auth = {"apikey": API_KEY, "token": token, "tokenHash": token_hash}
+        auth = {"token": token, "tokenHash": token_hash}
 
     animals, start, limit = [], 0, 100
     want_pictures = True
