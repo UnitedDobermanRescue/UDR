@@ -59,17 +59,28 @@ COLUMNS = [
 API_FIELDS = sorted({f for _, f in COLUMNS if f and not f.startswith("__")})
 
 
+def _url_from(p):
+    """Best URL from one picture entry, whatever shape RescueGroups returns."""
+    if isinstance(p, str):
+        return p
+    if not isinstance(p, dict):
+        return ""
+    for k in ("urlSecureFullsize", "urlInsecureFullsize", "urlSecureThumbnail"):
+        if p.get(k):
+            return p[k]
+    for k in ("large", "original", "small"):          # nested {"url": ...} forms
+        v = p.get(k)
+        if isinstance(v, dict) and v.get("url"):
+            return v["url"]
+    return ""
+
+
 def picture_urls(animal):
     """Up to 4 picture URLs from the animalPictures field (empty list if absent)."""
-    urls = []
-    for p in animal.get("animalPictures") or []:
-        if isinstance(p, dict):
-            u = (p.get("urlSecureFullsize") or p.get("urlInsecureFullsize")
-                 or p.get("urlSecureThumbnail") or "")
-        else:
-            u = str(p)
-        if u:
-            urls.append(u)
+    pics = animal.get("animalPictures") or []
+    if isinstance(pics, dict):
+        pics = list(pics.values())
+    urls = [u for u in (_url_from(p) for p in pics) if u]
     return urls[:4]
 
 
@@ -137,6 +148,13 @@ def main():
             break
 
     print("Animals kept (Available/Intake):", len(animals))
+    with_pics = sum(1 for a in animals if picture_urls(a))
+    print("Animals with pictures:", with_pics, "| picture field requested:", want_pictures)
+    sample = next((a.get("animalPictures") for a in animals if a.get("animalPictures")), None)
+    if sample:
+        first = sample[0] if isinstance(sample, list) else list(sample.values())[0]
+        print("Picture entry looks like:", type(first).__name__,
+              sorted(first.keys()) if isinstance(first, dict) else "")
     if not animals:   # never replace a good file with an empty one
         sys.exit("No animals returned; leaving animals.csv untouched")
     animals.sort(key=lambda a: int(a.get("animalID") or 0))
