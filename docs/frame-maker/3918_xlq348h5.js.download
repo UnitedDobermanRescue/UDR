@@ -1,0 +1,167 @@
+;!function(){try { var e="undefined"!=typeof globalThis?globalThis:"undefined"!=typeof global?global:"undefined"!=typeof window?window:"undefined"!=typeof self?self:{},n=(new e.Error).stack;n&&((e._debugIds|| (e._debugIds={}))[n]="49f92fe5-1745-7fc5-2731-d29b162c3b0a")}catch(e){}}();
+(()=>{"use strict";(globalThis.TURBOPACK||(globalThis.TURBOPACK=[])).push(["object"==typeof document?document.currentScript:void 0,689469,996208,504778,598973,e=>{var t=e.i(371432),r=e.i(757232);e.s(["f",0,function(e,a,o){let n,i,l=(0,t.c)(5),s=(0,r.useRef)(null),c=(0,r.useRef)(!1);l[0]!==e||l[1]!==o||l[2]!==a?(n=()=>{let t,r=e.current;if(null==r||null==a)return;try{t=o()}catch{return}s.current=t.register(a),c.current=!1;let n=new IntersectionObserver(e=>{let[r]=e;null!=r&&null!=s.current&&(r.isIntersecting?c.current&&(t.resume(s.current,a),c.current=!1):c.current||(t.suspend(s.current),c.current=!0))},{threshold:0});return n.observe(r),()=>{n.disconnect(),null!=s.current&&(t.unregister(s.current),s.current=null,c.current=!1)}},i=[e,a,o],l[0]=e,l[1]=o,l[2]=a,l[3]=n,l[4]=i):(n=l[3],i=l[4]),(0,r.useEffect)(n,i)}],689469);let a=null;function o(){if(null==a)try{a=null!=document.createElement("canvas").getContext("bitmaprenderer")}catch{a=!1}return a}function n(){return()=>{}}function i(){return!0}e.s(["f",0,function(){return(0,r.useSyncExternalStore)(n,o,i)}],996208),(0,e.i(840387).createClientLogger)("OffscreenRenderer");class l{active=new Map;suspended=new Map;state;createState;frameRoundRobinOffset=0;constructor(e,t){this.createState=e,this.state=e(t)}getGL(){return u().getGL()}getState(){return this.state}get size(){return this.active.size+this.suspended.size}register(e){let t=u().nextHandle();return this.active.set(t,e),u().onGroupChanged(),t}suspend(e){let t=this.active.get(e);null!=t&&(this.active.delete(e),this.suspended.set(e,t)),u().onGroupChanged()}resume(e,t){this.suspended.delete(e),this.active.set(e,t),u().onGroupChanged()}unregister(e){let t=u().getGL(),r=this.active.get(e);null!=r&&(r.cleanup(t),this.active.delete(e));let a=this.suspended.get(e);null!=a&&(a.cleanup(t),this.suspended.delete(e)),u().onGroupChanged()}tickAll(e){for(let t of this.active.values())t.tick(e);for(let t of this.suspended.values())t.tick(e)}renderBatch(e,t){let r=Array.from(this.active.values()),a=r.length;if(0===a)return;let o=Math.min(a,8),n=this.frameRoundRobinOffset%a;for(let i=0;i<o;i++){let o=r[(n+i)%a],{width:l,height:s}=o.getDesiredSize();if(!(l<=0)&&!(s<=0)&&((t.width!==l||t.height!==s)&&(t.width=l,t.height=s),e.viewport(0,0,l,s),e.clearColor(0,0,0,1),e.clear(e.COLOR_BUFFER_BIT),o.render(e,this.state)))try{let e=t.transferToImageBitmap();o.bitmapCtx.transferFromImageBitmap(e)}catch{break}}this.frameRoundRobinOffset=(n+o)%a}handleContextRestored(e){for(let t of(this.state=this.createState(e),this.active.values()))t.contextRestored(e);for(let t of this.suspended.values())t.contextRestored(e)}cleanupAll(e){for(let t of this.active.values())t.cleanup(e);for(let t of this.suspended.values())t.cleanup(e);this.active.clear(),this.suspended.clear()}}class s{offscreen;gl;groups=new Set;animation=null;handleCounter=0;contextLost=!1;constructor(){this.offscreen=new OffscreenCanvas(2,2);let e=this.offscreen.getContext("webgl2",{alpha:!1,antialias:!1,premultipliedAlpha:!0});if(null==e)throw Error("WebGL2 not supported on OffscreenCanvas");this.gl=e,this.offscreen.addEventListener("webglcontextlost",e=>{e.preventDefault(),this.contextLost=!0,this.stopLoop()}),this.offscreen.addEventListener("webglcontextrestored",()=>{for(let e of(this.contextLost=!1,this.groups))e.handleContextRestored(this.gl);this.totalInstances()>0&&this.startLoop()})}getGL(){return this.gl}nextHandle(){return++this.handleCounter}addGroup(e){this.groups.add(e)}onGroupChanged(){this.totalInstances()>0?this.startLoop():this.stopLoop()}totalInstances(){let e=0;for(let t of this.groups)e+=t.size;return e}startLoop(){null==this.animation&&(this.animation=window.requestAnimationFrame(this.loop))}stopLoop(){null!=this.animation&&(window.cancelAnimationFrame(this.animation),this.animation=null)}loop=e=>{for(let t of(this.animation=window.requestAnimationFrame(this.loop),this.groups))t.tickAll(e);if(!this.contextLost)for(let e of this.groups)e.renderBatch(this.gl,this.offscreen)}}let c=null;function u(){return null==c&&(c=new s),c}let f=new Map;e.s(["f",0,function(e,t){let r=f.get(e);if(null==r){let a=u();r=new l(t,a.getGL()),f.set(e,r),a.addGroup(r)}return r}],504778);let d=`#version 300 es
+precision highp float;
+
+layout(location=0) in vec2 a_basePosition;
+layout(location=1) in float a_random;
+
+out vec2 v_uv01Center;
+out float v_amplitude;
+out float v_random;
+out float v_transitionDelay;
+
+uniform float u_time;
+uniform vec2 u_resolution;
+uniform float u_aspectRatio;
+uniform float u_particleSize;
+uniform float u_isGridView;
+uniform float u_isTransitioning;
+`,m=`#version 300 es
+precision highp float;
+out vec4 outColor;
+
+in vec2 v_uv01Center;
+in float v_amplitude;
+in float v_random;
+in float v_transitionDelay;
+
+uniform sampler2D u_texA;
+uniform sampler2D u_texB;
+uniform mat3 u_uvA;
+uniform mat3 u_uvB;
+
+uniform float u_blendFactor;
+uniform float u_particleOpacity;
+uniform float u_useGradient;
+uniform float u_fadeProgress;
+uniform float u_fadeDirection;
+uniform float u_transitionProgress;
+uniform float u_isTransitioning;
+uniform float u_aspectRatio;
+uniform float u_isGridView;
+uniform float u_gradientSeed;
+uniform float u_oldGradientSeed;
+uniform float u_transitioningToGradient;
+uniform float u_transitioningGradients;
+uniform float u_currentlyOnGradient;
+uniform vec4 u_gradientColorLow;
+uniform vec4 u_gradientColorHigh;
+`,v=`
+const float NOISE_OFFSET_1 = 100.0;
+const float NOISE_OFFSET_2 = 50.0;
+const float NOISE_OFFSET_4 = 25.0;
+const float TRANSITION_NOISE_SCALE = 0.433;
+const float TRANSITION_NOISE_OFFSET = 100.0;
+const float WAVE_AMPLITUDE = 0.8;
+const float NOISE_SCALE = 0.6;
+const float LARGE_FLOW_WEIGHT = 0.77;
+const float MEDIUM_FLOW_WEIGHT = 0.06;
+const float SMALL_FLOW_WEIGHT = 0.71;
+const float LARGE_FLOW_SCALE = 1.54;
+const float MEDIUM_FLOW_SCALE = 0.20;
+const float SMALL_FLOW_SCALE = 1.5;
+const float TAPER_RANDOM_VARIATION = 0.1;
+const float RANDOM_MOTION_AMPLITUDE = 0.086;
+const float RANDOM_SEED_1 = 123.456;
+const float RANDOM_SEED_2 = 789.012;
+const float FBM_SCALE_DEFAULT = 1.2;
+const float TRANSITION_STAGGER_RANGE = 0.2;
+const float TRANSITION_INDIVIDUAL_DURATION = 0.5;
+`,p=`
+float randomParticle(vec2 st) { return fract(sin(dot(st, vec2(12.9898, 78.233))) * 43758.5453123); }
+
+float noiseParticle(vec2 st) {
+  vec2 i = floor(st);
+  vec2 f = fract(st);
+  float a = randomParticle(i);
+  float b = randomParticle(i + vec2(1.0, 0.0));
+  float c = randomParticle(i + vec2(0.0, 1.0));
+  float d = randomParticle(i + vec2(1.0, 1.0));
+  vec2 u = f * f * (3.0 - 2.0 * f);
+  return mix(a, b, u.x) + (c - a) * u.y * (1.0 - u.x) + (d - b) * u.x * u.y;
+}
+
+float fbmParticle(vec2 st, float scale) {
+  vec2 pos = st * scale; float value = 0.0; float amplitude = 0.5; float frequency = 1.0;
+  value += amplitude * noiseParticle(pos * frequency);
+  frequency *= 2.0; amplitude *= 0.5; value += amplitude * noiseParticle(pos * frequency);
+  frequency *= 2.0; amplitude *= 0.5; value += amplitude * noiseParticle(pos * frequency);
+  return value * 1.12;
+}
+
+float fbmGrid(vec2 st, float scale) {
+  vec2 pos = st * scale; float value = 0.0; float amplitude = 0.5;
+  value += amplitude * noiseParticle(pos); amplitude *= 0.5; value += amplitude * noiseParticle(pos * 2.0);
+  return value * 1.3;
+}
+
+vec2 calculateFlowScale(vec2 pos, float time, float scale, float timeSpeed, float offsetX, float offsetY, float fbmScale, float aspectRatio, bool useGrid) {
+  float ar = aspectRatio; vec2 aspectScale = vec2(max(ar, 1.0), max(1.0/ar, 1.0)); vec2 aspectPos = pos * aspectScale;
+  float s1 = sin(time * timeSpeed); float c2 = cos(time * timeSpeed * 0.7); vec2 timeOffset = vec2(s1, c2) * 10.0;
+  vec2 scaledPos = aspectPos * NOISE_SCALE * scale + timeOffset;
+  float angle = time * 0.1; float sr = sin(angle); float cr = cos(angle); mat2 rot = mat2(cr, -sr, sr, cr);
+  scaledPos = rot * scaledPos;
+  if (useGrid) {
+    vec2 noise1 = vec2(fbmGrid(scaledPos + vec2(offsetX, offsetY), fbmScale), fbmGrid(scaledPos + vec2(offsetX + NOISE_OFFSET_1, offsetY), fbmScale));
+    return (noise1 - 0.375) * 1.33;
+  } else {
+    return vec2(fbmParticle(scaledPos + vec2(offsetX, offsetY), fbmScale) - 0.5, fbmParticle(scaledPos + vec2(offsetX + NOISE_OFFSET_1, offsetY), fbmScale) - 0.5);
+  }
+}
+
+vec2 getFlowFieldParticle(vec2 pos, float time, float aspectRatio, bool useGrid) {
+  vec2 flow = vec2(0.0);
+  if (useGrid) {
+    flow += calculateFlowScale(pos, time, 1.54, 0.5, 0.0, 0.0, 1.2, aspectRatio, true) * 0.77;
+    flow += calculateFlowScale(pos, time, 1.5,  1.2, 25.0, 0.0, 1.2, aspectRatio, true) * 0.71;
+  } else {
+    flow += calculateFlowScale(pos, time, 1.54, 0.5, 0.0, 0.0, 1.2, aspectRatio, false) * 0.77;
+    flow += calculateFlowScale(pos, time, 0.20, 0.8, 50.0, 0.0, 1.2, aspectRatio, false) * 0.06;
+    flow += calculateFlowScale(pos, time, 1.5,  1.2, 25.0, 0.0, 1.2, aspectRatio, false) * 0.71;
+  }
+  return flow;
+}
+
+float calculateTransitionNoise(vec2 position, float aspectRatio, bool useGrid) {
+  float ar = aspectRatio; vec2 aspectScale = vec2(max(ar, 1.0), max(1.0/ar, 1.0)); vec2 aspectPos = position * aspectScale;
+  vec2 noisePos = aspectPos * TRANSITION_NOISE_SCALE + vec2(TRANSITION_NOISE_OFFSET);
+  return useGrid ? fbmGrid(noisePos, 1.0) : fbmParticle(noisePos, 1.0);
+}
+`,_=`
+const float PARTICLE_EDGE_FADE = 0.2;
+const float TRANSITION_INDIVIDUAL_DURATION = 0.5;
+const float TRANSITION_STAGGER_RANGE = 0.2;
+const float GRADIENT_ZOOM = 0.35;
+const float GRADIENT_NOISE_SCALE = 2.0;
+const float PARTICLE_RANDOM_BRIGHTNESS = 0.09;
+
+float randomParticle(vec2 st) { return fract(sin(dot(st, vec2(12.9898, 78.233))) * 43758.5453123); }
+float noiseParticle(vec2 st) {
+  vec2 i = floor(st); vec2 f = fract(st); float a = randomParticle(i); float b = randomParticle(i + vec2(1.0, 0.0)); float c = randomParticle(i + vec2(0.0, 1.0)); float d = randomParticle(i + vec2(1.0, 1.0)); vec2 u = f * f * (3.0 - 2.0 * f);
+  return mix(a, b, u.x) + (c - a) * u.y * (1.0 - u.x) + (d - b) * u.x * u.y;
+}
+
+vec4 generateBlobbyGradient(vec2 uv01, float seed) {
+  vec2 zoomedUV = uv01 * GRADIENT_ZOOM; vec2 offset = vec2(sin(seed * 0.5), cos(seed * 0.7)) * 0.1; zoomedUV += offset;
+  float n = noiseParticle(zoomedUV * GRADIENT_NOISE_SCALE * 3.0 + vec2(seed * 10.0));
+  n += noiseParticle(zoomedUV * GRADIENT_NOISE_SCALE * 7.0 + vec2(seed * 20.0 + 100.0)) * 0.4;
+  n *= 0.71; float finalNoise = smoothstep(0.1, 0.9, n);
+  return mix(u_gradientColorLow, u_gradientColorHigh, finalNoise);
+}
+`,h=`#version 300 es
+precision highp float;
+layout(location=0) in vec2 a_pos;
+out vec2 v_uv01;
+void main() { v_uv01 = (a_pos * 0.5 + 0.5) * vec2(1.0, -1.0) + vec2(0.0, 1.0); gl_Position = vec4(a_pos, 0.0, 1.0); }
+`,A=`
+const float TRANSITION_INDIVIDUAL_DURATION = 0.5; const float TRANSITION_STAGGER_RANGE = 0.2; const float BACKGROUND_DARKNESS_DEFAULT = 0.12; const float TRANSITION_NOISE_SCALE = 0.433; const float TRANSITION_NOISE_OFFSET = 100.0;
+
+float randomParticle(vec2 st) { return fract(sin(dot(st, vec2(12.9898, 78.233))) * 43758.5453123); }
+float noiseParticle(vec2 st) { vec2 i=floor(st), f=fract(st); float a=randomParticle(i), b=randomParticle(i+vec2(1,0)), c=randomParticle(i+vec2(0,1)), d=randomParticle(i+vec2(1,1)); vec2 u=f*f*(3.0-2.0*f); return mix(a,b,u.x)+(c-a)*u.y*(1.0-u.x)+(d-b)*u.x*u.y; }
+float fbmGrid(vec2 st, float scale){ vec2 pos=st*scale; float value=0.0, amplitude=0.5; value+=amplitude*noiseParticle(pos); amplitude*=0.5; value+=amplitude*noiseParticle(pos*2.0); return value*1.3; }
+float fbmParticle(vec2 st, float scale){ vec2 pos=st*scale; float value=0.0, amplitude=0.5, frequency=1.0; value+=amplitude*noiseParticle(pos*frequency); frequency*=2.0; amplitude*=0.5; value+=amplitude*noiseParticle(pos*frequency); frequency*=2.0; amplitude*=0.5; value+=amplitude*noiseParticle(pos*frequency); return value*1.12; }
+float calculateTransitionNoise(vec2 position, float aspectRatio, bool useGrid){ float ar=aspectRatio; vec2 aspectScale=vec2(max(ar,1.0),max(1.0/ar,1.0)); vec2 aspectPos=position*aspectScale; vec2 noisePos=aspectPos*TRANSITION_NOISE_SCALE+vec2(TRANSITION_NOISE_OFFSET); return useGrid?fbmGrid(noisePos,1.0):fbmParticle(noisePos,1.0);}
+vec4 generateBlobbyGradient(vec2 uv01,float seed,vec4 lowC,vec4 highC){ vec2 zoomedUV=uv01*0.35; vec2 offset=vec2(sin(seed*0.5),cos(seed*0.7))*0.1; zoomedUV+=offset; float n=noiseParticle(zoomedUV*2.0*3.0+vec2(seed*10.0)); n+=noiseParticle(zoomedUV*2.0*7.0+vec2(seed*20.0+100.0))*0.4; n*=0.71; float finalNoise=smoothstep(0.1,0.9,n); return mix(lowC,highC,finalNoise);}
+`;function E(e,t,r){let a=null,o=null,n=null;try{if(a=e.createShader(e.VERTEX_SHADER),null==a)throw Error("Error initializing vertex shader");if(e.shaderSource(a,t),e.compileShader(a),!e.getShaderParameter(a,e.COMPILE_STATUS))throw Error(e.getShaderInfoLog(a)||"VS compile error");if(o=e.createShader(e.FRAGMENT_SHADER),null==o)throw Error("Error initializing fragment shader");if(e.shaderSource(o,r),e.compileShader(o),!e.getShaderParameter(o,e.COMPILE_STATUS))throw Error(e.getShaderInfoLog(o)||"FS compile error");if(n=e.createProgram(),null==n)throw Error("Error creating program");if(e.attachShader(n,a),e.attachShader(n,o),e.linkProgram(n),!e.getProgramParameter(n,e.LINK_STATUS))throw Error(e.getProgramInfoLog(n)||"Link error");return e.deleteShader(a),e.deleteShader(o),n}catch(t){throw null!=a&&e.deleteShader(a),null!=o&&e.deleteShader(o),null!=n&&e.deleteProgram(n),t}}function S(e=1){return Math.random()*e}e.s(["h",0,A,"_",0,_,"B",0,m,"x",0,v,"i",0,p,"U",0,d,"I",0,h,"W",0,function(e,t,r,a,o=!1){let n=e/t,i=r/a,l=1,s=1,c=0,u=0;return i>n?c=(1-(l=n/i))*.5:u=(1-(s=i/n))*.5,new Float32Array([l,0,0,0,o?-s:s,0,c,o?s+u:u,1])},"O",0,function(e,t=!1){let r=e.createTexture();return e.bindTexture(e.TEXTURE_2D,r),e.texParameteri(e.TEXTURE_2D,e.TEXTURE_MIN_FILTER,t?e.LINEAR_MIPMAP_LINEAR:e.LINEAR),e.texParameteri(e.TEXTURE_2D,e.TEXTURE_MAG_FILTER,e.LINEAR),e.texParameteri(e.TEXTURE_2D,e.TEXTURE_WRAP_S,e.CLAMP_TO_EDGE),e.texParameteri(e.TEXTURE_2D,e.TEXTURE_WRAP_T,e.CLAMP_TO_EDGE),e.texImage2D(e.TEXTURE_2D,0,e.RGBA,1,1,0,e.RGBA,e.UNSIGNED_BYTE,new Uint8Array([0,0,0,255])),t&&e.generateMipmap(e.TEXTURE_2D),r},"Q",0,function(){let e=performance.now();return{backgroundBlendFactor:0,backgroundTransitionProgress:0,blendFactor:0,currentlyOnGradient:1,fadeAnimating:!1,fadeDirection:1,fadeDurationMs:0,fadeFrom:1,fadeStart:0,fadeTo:1,gradientSeed:S(1e3),isTransitioning:!1,lastUpdateTs:e,oldGradientSeed:0,particleOpacity:1,randomTimeOffset:S(100),startTs:e,time:0,transitioningGradients:0,transitioningToGradient:0,transitionProgress:0,transitionStart:0,useGradient:1}},"s",0,function(e,t){let r=E(e,t.vertBg,t.fragBg),a=E(e,t.vertParticles,t.fragParticles),o=e.createVertexArray(),n=e.createBuffer();if(null==o||null==n)throw Error("Failed to create bg VAO/VBO");e.bindVertexArray(o),e.bindBuffer(e.ARRAY_BUFFER,n);let i=new Float32Array([-1,-1,1,-1,-1,1,1,1]);return e.bufferData(e.ARRAY_BUFFER,i,e.STATIC_DRAW),e.enableVertexAttribArray(0),e.vertexAttribPointer(0,2,e.FLOAT,!1,0,0),e.bindVertexArray(null),{bgProgram:r,particleProgram:a,bgVao:o,bgVbo:n}},"k",0,function(e,t,r,a){let o=Math.max(2,Math.min(e,a)),n=Math.max(2,Math.min(t,a));return{gridW:Math.max(2,Math.min(Math.floor(o*r),a)),gridH:Math.max(2,Math.min(Math.floor(n*r),a))}},"C",0,S,"e",0,function(e,t,r,a){e.bindVertexArray(t),e.bindBuffer(e.ARRAY_BUFFER,r),e.bufferData(e.ARRAY_BUFFER,a,e.STATIC_DRAW),e.enableVertexAttribArray(0),e.vertexAttribPointer(0,2,e.FLOAT,!1,12,0),e.enableVertexAttribArray(1),e.vertexAttribPointer(1,1,e.FLOAT,!1,12,8),e.bindVertexArray(null)}],598973)},510729,e=>{var t=e.i(644730),r=e.i(371432),a=e.i(757232);let o=(0,a.createContext)({averageProgress:0,setProgress:()=>{}});function n(e,t){return e+t}e.s(["B",0,function(e){let i,l,s,c,u,f,d,m,v=(0,r.c)(11),{children:p}=e;v[0]===Symbol.for("react.memo_cache_sentinel")?(i=new Map,v[0]=i):i=v[0];let _=(0,a.useRef)(i),[h,A]=(0,a.useState)(0),E=(0,a.useRef)(null);v[1]===Symbol.for("react.memo_cache_sentinel")?(l=()=>{let e=Array.from(_.current.values());0===e.length?A(0):A(e.reduce(n,0)/e.length)},v[1]=l):l=v[1];let S=l;v[2]===Symbol.for("react.memo_cache_sentinel")?(s=()=>{null==E.current&&(E.current=window.setTimeout(()=>{E.current=null,S()},100))},v[2]=s):s=v[2];let T=s;v[3]===Symbol.for("react.memo_cache_sentinel")?(c=(e,t)=>{_.current.get(e)!==t&&(_.current.set(e,t),T())},v[3]=c):c=v[3];let g=c;v[4]===Symbol.for("react.memo_cache_sentinel")?(u=()=>()=>{null!=E.current&&(window.clearTimeout(E.current),E.current=null)},f=[],v[4]=u,v[5]=f):(u=v[4],f=v[5]),(0,a.useEffect)(u,f),v[6]!==h?(d={averageProgress:h,setProgress:g},v[6]=h,v[7]=d):d=v[7];let R=d;return v[8]!==p||v[9]!==R?(m=(0,t.jsx)(o.Provider,{value:R,children:p}),v[8]=p,v[9]=R,v[10]=m):m=v[10],m},"C",0,function(){return(0,a.useContext)(o)}])},314382,e=>{var t=e.i(371432),r=e.i(168991),a=e.i(757232);let o=new Map,n=(0,r.f)();function i(e){return o.has(e)}function l(){return!1}e.s(["M",0,i,"T",0,function(e){return e.includes("/api/attachment-image/")},"L",0,function(e){let t=o.get(e);void 0!==t&&clearTimeout(t);let r=setTimeout(()=>{o.delete(e),n.emit()},6e4);o.set(e,r),void 0===t&&n.emit()},"p",0,function(e){let r,o=(0,t.c)(2);o[0]!==e?(r=()=>null!=e&&i(e),o[0]=e,o[1]=r):r=o[1];let s=r;return(0,a.useSyncExternalStore)(n.subscribe,s,l)}])},803534,508324,e=>{var t=e.i(964355),r=e.i(757232),a=e.i(451347),o=e.i(900893);function n(e){let n=(0,o.f)(()=>(0,t.o)(e)),{isStatic:i}=(0,r.useContext)(a.f);if(i){let[,t]=(0,r.useState)(e);(0,r.useEffect)(()=>n.on("change",t),[])}return n}e.s(["f",0,n],803534);var i=e.i(562667),l=e.i(907953),s=e.i(478146);function c(e,t){let r=n(t()),a=()=>r.set(t());return a(),(0,s.f)(()=>{let t=()=>l.y.preRender(a,!1,!0),r=e.map(e=>e.on("change",t));return()=>{r.forEach(e=>e()),(0,l.Y)(a)}}),r}function u(e,t){let r=(0,o.f)(()=>[]);return c(e,()=>{r.length=0;let a=e.length;for(let t=0;t<a;t++)r[t]=e[t].get();return t(r)})}e.s(["f",0,function e(r,a,n,l){if("function"==typeof r){let e;return t.I.current=[],r(),e=c(t.I.current,r),t.I.current=void 0,e}if(void 0!==n&&!Array.isArray(n)&&"function"!=typeof a){var s=r,f=a,d=n,m=l;let t=(0,o.f)(()=>Object.keys(d)),i=(0,o.f)(()=>({}));for(let r of t)i[r]=e(s,f,d[r],m);return i}let v="function"==typeof a?a:function(...e){let t=!Array.isArray(e[0]),r=t?0:-1,a=e[0+r],o=e[1+r],n=e[2+r],l=e[3+r],s=(0,i.f)(o,n,l);return t?s(a):s}(a,n,l),p=Array.isArray(r)?u(r,v):u([r],([e])=>v(e)),_=Array.isArray(r)?void 0:r.accelerate;return _&&!_.isTransformed&&"function"!=typeof a&&Array.isArray(n)&&l?.clamp!==!1&&(p.accelerate={..._,times:a,keyframes:n,isTransformed:!0,...l?.ease?{ease:l.ease}:{}}),p}],508324)}])})();
+
+//# debugId=49f92fe5-1745-7fc5-2731-d29b162c3b0a
